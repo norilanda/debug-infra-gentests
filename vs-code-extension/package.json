@@ -1,0 +1,61 @@
+{
+    "name": "auto-debugger",
+    "displayName": "Auto Debugger",
+    "description": "Step through recorded calls and run the tests generated for them.",
+    "version": "0.0.1",
+    "publisher": "auto-debugger",
+    "private": true,
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.95.0"
+    },
+    "categories": [
+        "Debuggers",
+        "Testing"
+    ],
+    "main": "./dist/extension.js",
+    "activationEvents": [],
+    "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "autoDebugger",
+                    "title": "Auto Debugger",
+                    "icon": "media/icon.svg"
+                }
+            ]
+        },
+        "views": {
+            "autoDebugger": [
+                {
+                    "id": "autoDebugger.runs",
+                    "name": "Runs",
+                    "icon": "media/icon.svg"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "build": "node esbuild.mjs",
+        "watch": "node esbuild.mjs --watch",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint .",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "test": "vitest run",
+        "vscode:prepublish": "npm run typecheck && node esbuild.mjs --production"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@types/node": "^22.20.5",
+        "@types/vscode": "^1.95.0",
+        "esbuild": "^0.28.2",
+        "eslint": "^10.13.0",
+        "eslint-config-prettier": "^10.1.8",
+        "globals": "^17.13.0",
+        "prettier": "^3.9.10",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.72.1",
+        "vitest": "^5.0.5"
+    }
+}
