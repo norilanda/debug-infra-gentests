@@ -48,6 +48,7 @@ Contents:
 - apps/fields: demonstrates instance fields
 - apps/static: demonstrates static fields
 - apps/objects: demonstrates object parameter capture
+- apps/linecount: a recursive static method with two bugs (`null` text, width 0 → `/ by zero`) and a repeated call
 - scripts/mock-disl.py: a tiny Python script that stands in for DiSL's disl.py
 - scripts/prepare_stub_results.(sh|py): creates a stub test and a results list in the output directory
 
@@ -298,4 +299,6 @@ Examples:
 - apps/objects/src/com/example/PersonApp.java
 - apps/objects/src/com/example/PersonService.java
 - apps/objects/src/com/example/Person.java
+- apps/linecount/src/com/example/LineCountApp.java
+- apps/linecount/src/com/example/LineCounter.java
 
