@@ -1,0 +1,47 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:auto-debugger:contract:v1:results",
+    "title": "results.json",
+    "description": "The last result of every test that has been executed. Written by the full run and updated by every run-tests: results of the tests that ran are replaced, the others are kept.",
+    "type": "object",
+    "required": ["schemaVersion", "results"],
+    "properties": {
+        "schemaVersion": { "const": 1 },
+        "error": {
+            "description": "Set when the last execution failed as a whole (e.g. the tests didn't compile), so no test has a fresh result. Removed by the next successful execution.",
+            "type": "object",
+            "required": ["message"],
+            "properties": {
+                "message": {
+                    "description": "Shown on every test of the run. May span several lines, e.g. the compiler output.",
+                    "type": "string",
+                    "minLength": 1
+                }
+            }
+        },
+        "results": {
+            "description": "At most one result per testId.",
+            "type": "array",
+            "items": { "$ref": "#/$defs/result" }
+        }
+    },
+    "$defs": {
+        "result": {
+            "type": "object",
+            "required": ["testId", "status"],
+            "properties": {
+                "testId": { "type": "string", "minLength": 1 },
+                "status": {
+                    "description": "`failed`: an assertion failed or the code under test threw. `error`: the test couldn't run properly (e.g. its setup threw).",
+                    "enum": ["passed", "failed", "error", "skipped"]
+                },
+                "durationMs": { "type": "number", "minimum": 0 },
+                "message": {
+                    "description": "Failure or error message, e.g. `java.lang.ArithmeticException: / by zero`.",
+                    "type": "string"
+                },
+                "stackTrace": { "type": "string" }
+            }
+        }
+    }
+}

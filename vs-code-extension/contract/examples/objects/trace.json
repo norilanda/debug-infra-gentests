@@ -1,0 +1,129 @@
+{
+    "schemaVersion": 1,
+    "calls": [
+        {
+            "callIndex": 0,
+            "entry": {
+                "0": {
+                    "kind": "object",
+                    "type": "com.example.Node",
+                    "id": 1,
+                    "fields": {
+                        "name": { "kind": "string", "type": "java.lang.String", "value": "root" },
+                        "weight": { "kind": "primitive", "type": "double", "value": "NaN" },
+                        "tags": {
+                            "kind": "array",
+                            "type": "java.lang.String[]",
+                            "id": 4,
+                            "elements": [
+                                { "kind": "string", "type": "java.lang.String", "value": "red" },
+                                { "kind": "string", "type": "java.lang.String", "value": "blue" }
+                            ],
+                            "length": 5
+                        },
+                        "prev": { "kind": "null", "type": "com.example.Node" },
+                        "next": {
+                            "kind": "object",
+                            "type": "com.example.Node",
+                            "id": 2,
+                            "fields": {
+                                "name": {
+                                    "kind": "string",
+                                    "type": "java.lang.String",
+                                    "value": "leaf"
+                                },
+                                "weight": { "kind": "primitive", "type": "double", "value": 0.5 },
+                                "tags": {
+                                    "kind": "array",
+                                    "type": "java.lang.String[]",
+                                    "elements": []
+                                },
+                                "prev": { "kind": "cycle", "type": "com.example.Node", "id": 1 },
+                                "next": { "kind": "truncated", "type": "com.example.Node" }
+                            }
+                        }
+                    }
+                },
+                "1": {
+                    "kind": "text",
+                    "type": "java.util.ArrayList",
+                    "id": 3,
+                    "text": "[a, b, c]"
+                },
+                "2": { "kind": "null", "type": "java.lang.String" },
+                "3": { "kind": "skipped", "type": "java.lang.Thread" }
+            },
+            "exit": {
+                "0": {
+                    "kind": "object",
+                    "type": "com.example.Node",
+                    "id": 1,
+                    "fields": {
+                        "name": { "kind": "string", "type": "java.lang.String", "value": "root" },
+                        "weight": { "kind": "primitive", "type": "double", "value": 1.5 },
+                        "tags": {
+                            "kind": "array",
+                            "type": "java.lang.String[]",
+                            "id": 4,
+                            "elements": [
+                                { "kind": "string", "type": "java.lang.String", "value": "red" },
+                                { "kind": "string", "type": "java.lang.String", "value": "blue" },
+                                { "kind": "null", "type": "java.lang.String" }
+                            ],
+                            "length": 5
+                        },
+                        "next": {
+                            "kind": "object",
+                            "type": "com.example.Node",
+                            "id": 2,
+                            "fields": {
+                                "name": {
+                                    "kind": "string",
+                                    "type": "java.lang.String",
+                                    "value": "leaf"
+                                },
+                                "weight": { "kind": "primitive", "type": "double", "value": 0.5 },
+                                "tags": { "kind": "ref", "type": "java.lang.String[]", "id": 4 },
+                                "prev": { "kind": "cycle", "type": "com.example.Node", "id": 1 },
+                                "next": { "kind": "cycle", "type": "com.example.Node", "id": 1 }
+                            }
+                        },
+                        "prev": { "kind": "ref", "type": "com.example.Node", "id": 2 }
+                    }
+                },
+                "1": { "kind": "text", "type": "java.util.ArrayList", "text": "[a, b, c, d]" },
+                "2": { "kind": "null", "type": "java.lang.String" },
+                "3": { "kind": "skipped", "type": "java.lang.Thread" }
+            },
+            "outcome": { "kind": "returned" }
+        },
+        {
+            "callIndex": 1,
+            "entry": {
+                "0": { "kind": "null", "type": "com.example.Node" },
+                "1": { "kind": "text", "type": "java.util.List", "text": "[]" },
+                "2": {
+                    "kind": "string",
+                    "type": "java.lang.String",
+                    "value": "line\n\"quoted\""
+                },
+                "3": { "kind": "skipped", "type": "java.lang.Thread" }
+            },
+            "exit": {
+                "0": { "kind": "null", "type": "com.example.Node" },
+                "1": { "kind": "text", "type": "java.util.List", "text": "[]" },
+                "2": {
+                    "kind": "string",
+                    "type": "java.lang.String",
+                    "value": "line\n\"quoted\""
+                },
+                "3": { "kind": "skipped", "type": "java.lang.Thread" }
+            },
+            "outcome": {
+                "kind": "threw",
+                "exception": "java.lang.NullPointerException",
+                "message": null
+            }
+        }
+    ]
+}

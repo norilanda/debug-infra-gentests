@@ -1,0 +1,60 @@
+{
+    "schemaVersion": 1,
+    "calls": [
+        {
+            "callIndex": 0,
+            "entry": {
+                "0": { "kind": "primitive", "type": "int", "value": 10 },
+                "1": { "kind": "primitive", "type": "int", "value": 2 },
+                "2": { "kind": "primitive", "type": "int", "value": 0 }
+            },
+            "exit": {
+                "0": { "kind": "primitive", "type": "int", "value": 10 },
+                "1": { "kind": "primitive", "type": "int", "value": 2 },
+                "2": { "kind": "primitive", "type": "int", "value": 1 }
+            },
+            "outcome": { "kind": "returned" }
+        },
+        {
+            "callIndex": 1,
+            "entry": {
+                "0": { "kind": "primitive", "type": "int", "value": 7 },
+                "1": { "kind": "primitive", "type": "int", "value": 0 },
+                "2": { "kind": "primitive", "type": "int", "value": 1 }
+            },
+            "exit": {
+                "0": { "kind": "primitive", "type": "int", "value": 7 },
+                "1": { "kind": "primitive", "type": "int", "value": 0 },
+                "2": { "kind": "primitive", "type": "int", "value": 2 }
+            },
+            "outcome": {
+                "kind": "threw",
+                "exception": "java.lang.ArithmeticException",
+                "message": "/ by zero"
+            }
+        },
+        {
+            "callIndex": 2,
+            "entry": {
+                "0": { "kind": "primitive", "type": "int", "value": 10 },
+                "1": { "kind": "primitive", "type": "int", "value": 2 },
+                "2": { "kind": "primitive", "type": "int", "value": 2 }
+            },
+            "exit": {
+                "0": { "kind": "primitive", "type": "int", "value": 10 },
+                "1": { "kind": "primitive", "type": "int", "value": 2 },
+                "2": { "kind": "primitive", "type": "int", "value": 3 }
+            },
+            "outcome": { "kind": "returned" }
+        },
+        {
+            "callIndex": 3,
+            "entry": {
+                "0": { "kind": "primitive", "type": "int", "value": 5 },
+                "1": { "kind": "primitive", "type": "int", "value": 1 },
+                "2": { "kind": "primitive", "type": "int", "value": 3 }
+            },
+            "exit": null
+        }
+    ]
+}

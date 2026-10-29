@@ -1,0 +1,91 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:auto-debugger:contract:v1:run",
+    "title": "run.json",
+    "description": "Summary of one run of the backend pipeline. Its presence marks a directory as a run directory.",
+    "type": "object",
+    "required": ["schemaVersion", "language", "target", "captured", "status", "createdAt"],
+    "properties": {
+        "schemaVersion": { "const": 1 },
+        "language": {
+            "description": "Which backend produced the run, e.g. `java` or `dotnet`. The extension uses it only to pick the backend command for run-tests.",
+            "type": "string",
+            "minLength": 1
+        },
+        "target": {
+            "description": "The procedure whose calls were recorded.",
+            "type": "object",
+            "required": ["signature"],
+            "properties": {
+                "signature": {
+                    "description": "Full signature in the language's own notation, e.g. `com.example.Divider.divide(int,int)`.",
+                    "type": "string",
+                    "minLength": 1
+                }
+            }
+        },
+        "captured": {
+            "description": "The recorded arguments and fields, in display order. Snapshots in trace.json are keyed by `captureId`.",
+            "type": "array",
+            "items": { "$ref": "#/$defs/capturedIdentifier" }
+        },
+        "typeNames": {
+            "description": "Short display names for type names used anywhere in the run (values, `captured`, exception types), e.g. `System.Int32` → `int`, `com.example.Node` → `Node`. The UI shows the short name and the full name on hover; a type that isn't listed is shown as it is.",
+            "type": "object",
+            "additionalProperties": { "type": "string", "minLength": 1 }
+        },
+        "traceMode": {
+            "description": "How the backend recorded the trace, e.g. `naive` or `temporal`. Shown in the run summary only.",
+            "type": "string"
+        },
+        "recorded": {
+            "description": "What the backend records for each call. A `false` flag means the matching field is omitted from every call in trace.json.",
+            "type": "object",
+            "properties": {
+                "exit": { "type": "boolean", "default": true },
+                "outcome": { "type": "boolean", "default": true }
+            }
+        },
+        "counts": {
+            "description": "Sizes of trace.json and tests.json, so a run can be summarized without reading them.",
+            "type": "object",
+            "properties": {
+                "calls": { "type": "integer", "minimum": 0 },
+                "tests": { "type": "integer", "minimum": 0 }
+            }
+        },
+        "status": {
+            "description": "Result of the full run's own work: recording the calls and generating the tests. `ok` when both succeeded, `failed` otherwise; a failed run may still have some of the other files. Failures while executing tests (e.g. the tests don't compile) are reported in results.json only; run-tests never changes run.json.",
+            "enum": ["ok", "failed"]
+        },
+        "error": {
+            "description": "Why recording or test generation failed, when `status` is `failed`. Shown in the Runs view.",
+            "type": "string",
+            "minLength": 1
+        },
+        "createdAt": {
+            "description": "When the run started.",
+            "type": "string",
+            "format": "date-time"
+        }
+    },
+    "$defs": {
+        "capturedIdentifier": {
+            "type": "object",
+            "required": ["captureId", "kind", "name", "type"],
+            "properties": {
+                "captureId": { "type": "integer", "minimum": 0 },
+                "kind": {
+                    "description": "Whether the value is shown under Arguments or Fields.",
+                    "enum": ["argument", "field"]
+                },
+                "name": {
+                    "description": "Shown as the value's name. An argument whose real name the backend doesn't know is named `arg<position>`, counting from 0 (`arg0`, `arg1`, …). If two captured fields would have the same name (e.g. fields of different classes), the backend makes them distinct, e.g. `Other.count`.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "type": { "type": "string", "minLength": 1 }
+            }
+        }
+    }
+}

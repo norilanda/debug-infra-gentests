@@ -1,0 +1,26 @@
+{
+    "schemaVersion": 1,
+    "language": "java",
+    "target": {
+        "signature": "com.example.Shapes.describe(com.example.Node,java.util.List,java.lang.String,java.lang.Thread)"
+    },
+    "captured": [
+        { "captureId": 0, "kind": "argument", "name": "arg0", "type": "com.example.Node" },
+        { "captureId": 1, "kind": "argument", "name": "arg1", "type": "java.util.List" },
+        { "captureId": 2, "kind": "argument", "name": "arg2", "type": "java.lang.String" },
+        { "captureId": 3, "kind": "argument", "name": "arg3", "type": "java.lang.Thread" }
+    ],
+    "typeNames": {
+        "com.example.Node": "Node",
+        "java.lang.String": "String",
+        "java.lang.String[]": "String[]",
+        "java.lang.Thread": "Thread",
+        "java.lang.NullPointerException": "NullPointerException",
+        "java.util.ArrayList": "ArrayList",
+        "java.util.List": "List"
+    },
+    "traceMode": "naive",
+    "counts": { "calls": 2, "tests": 1 },
+    "status": "ok",
+    "createdAt": "2026-10-29T11:12:00Z"
+}

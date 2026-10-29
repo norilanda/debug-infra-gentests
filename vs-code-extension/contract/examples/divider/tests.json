@@ -1,0 +1,17 @@
+{
+    "schemaVersion": 1,
+    "tests": [
+        {
+            "testId": "com.example.DividerTest#testDivide_Scenario1",
+            "callIndices": [0, 2]
+        },
+        {
+            "testId": "com.example.DividerTest#testDivide_Scenario2",
+            "callIndices": [1]
+        },
+        {
+            "testId": "com.example.DividerTest#testDivide_Scenario3",
+            "callIndices": []
+        }
+    ]
+}

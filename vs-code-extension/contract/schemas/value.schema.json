@@ -1,0 +1,150 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:auto-debugger:contract:v1:value",
+    "title": "Captured values",
+    "description": "Snapshots and value kinds shared by the contract files. Referenced from trace.schema.json.",
+    "$defs": {
+        "snapshot": {
+            "description": "Values of the captured arguments and fields at one point of a call (entry or exit). Keys are captureIds from run.json `captured`, written as decimal strings. Every captured identifier should have a key; a value the backend could not record is written as a `skipped` value, not left out.",
+            "type": "object",
+            "propertyNames": { "pattern": "^(0|[1-9][0-9]*)$" },
+            "additionalProperties": { "$ref": "#/$defs/value" }
+        },
+        "value": {
+            "description": "One recorded value. `kind` says how to read the rest. `type` is the language's type name as text (e.g. `int`, `java.lang.String`, `System.Int32`); the UI shows it as it comes. `id` and `ref`/`cycle` targets are scoped to one snapshot.",
+            "oneOf": [
+                { "$ref": "#/$defs/primitive" },
+                { "$ref": "#/$defs/string" },
+                { "$ref": "#/$defs/null" },
+                { "$ref": "#/$defs/object" },
+                { "$ref": "#/$defs/array" },
+                { "$ref": "#/$defs/text" },
+                { "$ref": "#/$defs/ref" },
+                { "$ref": "#/$defs/cycle" },
+                { "$ref": "#/$defs/truncated" },
+                { "$ref": "#/$defs/skipped" }
+            ]
+        },
+        "typeName": {
+            "type": "string",
+            "minLength": 1
+        },
+        "objectId": {
+            "description": "Identifies an object or array within one snapshot, so that `ref` and `cycle` values can point to it.",
+            "type": "integer",
+            "minimum": 0
+        },
+        "primitive": {
+            "description": "A number, boolean or character. Integers outside ±(2^53 - 1) and non-finite floats (NaN, Infinity, -Infinity) are written as strings so they survive JSON parsing; a character is a one-character string.",
+            "type": "object",
+            "required": ["kind", "type", "value"],
+            "properties": {
+                "kind": { "const": "primitive" },
+                "type": { "$ref": "#/$defs/typeName" },
+                "value": { "type": ["number", "boolean", "string"] }
+            }
+        },
+        "string": {
+            "type": "object",
+            "required": ["kind", "type", "value"],
+            "properties": {
+                "kind": { "const": "string" },
+                "type": { "$ref": "#/$defs/typeName" },
+                "value": { "type": "string" }
+            }
+        },
+        "null": {
+            "description": "A null reference. `type` is the declared type of the argument or field.",
+            "type": "object",
+            "required": ["kind", "type"],
+            "properties": {
+                "kind": { "const": "null" },
+                "type": { "$ref": "#/$defs/typeName" }
+            }
+        },
+        "object": {
+            "description": "An object with its recorded fields. `type` is the runtime class.",
+            "type": "object",
+            "required": ["kind", "type", "fields"],
+            "properties": {
+                "kind": { "const": "object" },
+                "type": { "$ref": "#/$defs/typeName" },
+                "id": { "$ref": "#/$defs/objectId" },
+                "fields": {
+                    "description": "Field name → value, in declaration order where the backend knows it.",
+                    "type": "object",
+                    "additionalProperties": { "$ref": "#/$defs/value" }
+                }
+            }
+        },
+        "array": {
+            "description": "An array, or a list or other ordered collection the backend records element by element. `type` is the runtime type, e.g. `int[]` or `System.Collections.Generic.List<System.Int32>`.",
+            "type": "object",
+            "required": ["kind", "type", "elements"],
+            "properties": {
+                "kind": { "const": "array" },
+                "type": { "$ref": "#/$defs/typeName" },
+                "id": { "$ref": "#/$defs/objectId" },
+                "elements": {
+                    "description": "The recorded elements, in order from index 0. May be only the first elements; see `length`.",
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/value" }
+                },
+                "length": {
+                    "description": "The real number of elements, written only when the backend recorded fewer than all of them (`elements` then holds the first ones).",
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
+        "text": {
+            "description": "An object the backend recorded only as text, e.g. a library collection recorded through its toString().",
+            "type": "object",
+            "required": ["kind", "type", "text"],
+            "properties": {
+                "kind": { "const": "text" },
+                "type": { "$ref": "#/$defs/typeName" },
+                "id": { "$ref": "#/$defs/objectId" },
+                "text": { "type": "string" }
+            }
+        },
+        "ref": {
+            "description": "The same object as the `object`, `array` or `text` value with this `id`, which appears elsewhere in the snapshot.",
+            "type": "object",
+            "required": ["kind", "type", "id"],
+            "properties": {
+                "kind": { "const": "ref" },
+                "type": { "$ref": "#/$defs/typeName" },
+                "id": { "$ref": "#/$defs/objectId" }
+            }
+        },
+        "cycle": {
+            "description": "A reference back to an enclosing object (the `object` or `array` value with this `id`), so the tree stops here.",
+            "type": "object",
+            "required": ["kind", "type", "id"],
+            "properties": {
+                "kind": { "const": "cycle" },
+                "type": { "$ref": "#/$defs/typeName" },
+                "id": { "$ref": "#/$defs/objectId" }
+            }
+        },
+        "truncated": {
+            "description": "A value cut off by the backend's depth or size limits.",
+            "type": "object",
+            "required": ["kind", "type"],
+            "properties": {
+                "kind": { "const": "truncated" },
+                "type": { "$ref": "#/$defs/typeName" }
+            }
+        },
+        "skipped": {
+            "description": "A value the backend did not record, e.g. a type it doesn't serialize or a serialization error.",
+            "type": "object",
+            "required": ["kind", "type"],
+            "properties": {
+                "kind": { "const": "skipped" },
+                "type": { "$ref": "#/$defs/typeName" }
+            }
+        }
+    }
+}

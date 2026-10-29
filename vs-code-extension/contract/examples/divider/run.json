@@ -1,0 +1,16 @@
+{
+    "schemaVersion": 1,
+    "language": "java",
+    "target": { "signature": "com.example.Divider.divide(int,int)" },
+    "captured": [
+        { "captureId": 0, "kind": "argument", "name": "arg0", "type": "int" },
+        { "captureId": 1, "kind": "argument", "name": "arg1", "type": "int" },
+        { "captureId": 2, "kind": "field", "name": "calls", "type": "int" }
+    ],
+    "typeNames": { "java.lang.ArithmeticException": "ArithmeticException" },
+    "traceMode": "naive",
+    "recorded": { "exit": true, "outcome": true },
+    "counts": { "calls": 4, "tests": 3 },
+    "status": "ok",
+    "createdAt": "2026-10-29T10:15:00Z"
+}

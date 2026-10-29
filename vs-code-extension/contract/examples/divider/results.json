@@ -1,0 +1,17 @@
+{
+    "schemaVersion": 1,
+    "results": [
+        {
+            "testId": "com.example.DividerTest#testDivide_Scenario1",
+            "status": "passed",
+            "durationMs": 2
+        },
+        {
+            "testId": "com.example.DividerTest#testDivide_Scenario2",
+            "status": "failed",
+            "durationMs": 3,
+            "message": "java.lang.ArithmeticException: / by zero",
+            "stackTrace": "java.lang.ArithmeticException: / by zero\n\tat com.example.Divider.divide(Divider.java:7)\n\tat com.example.DividerTest.testDivide_Scenario2(DividerTest.java:21)"
+        }
+    ]
+}

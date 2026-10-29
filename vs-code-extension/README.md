@@ -22,8 +22,9 @@ Host window.
 
 ## Layout
 
-| Path               | Content                      |
-| ------------------ | ---------------------------- |
-| `src/extension.ts` | Entry point, registers views |
-| `src/views/`       | Tree views (Runs)            |
-| `test/`            | Unit tests (`*.test.ts`)     |
+| Path               | Content                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------- |
+| `src/extension.ts` | Entry point, registers views                                                                 |
+| `src/views/`       | Tree views (Runs)                                                                            |
+| `test/`            | Unit tests (`*.test.ts`)                                                                     |
+| `contract/`        | Backend contract: JSON Schemas, examples, `run-tests` command ([README](contract/README.md)) |
