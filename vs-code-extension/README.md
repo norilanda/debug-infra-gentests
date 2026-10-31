@@ -20,11 +20,17 @@ npm test            # vitest unit tests (code that doesn't import `vscode`)
 To try it, open this folder in VS Code and press F5 (**Run Extension**). It builds and opens an Extension Development
 Host window.
 
+In the new window, set **Auto Debugger: Output Root** (`autoDebugger.outputRoot`) to the folder that holds the run
+directories, e.g. `Java/auto-debugger/demo/output`, or use the folder button in the Runs view.
+
 ## Layout
 
 | Path               | Content                                                                                      |
 | ------------------ | -------------------------------------------------------------------------------------------- |
 | `src/extension.ts` | Entry point, registers views                                                                 |
+| `src/settings.ts`  | Reading and saving the extension settings                                                    |
+| `src/model/`       | Types for the contract files (`run.json`)                                                    |
+| `src/runs/`        | Reading `run.json` and finding run directories (no `vscode` import, unit tested)             |
 | `src/views/`       | Tree views (Runs)                                                                            |
-| `test/`            | Unit tests (`*.test.ts`)                                                                     |
+| `test/`            | Unit tests (`*.test.ts`), fixtures in `test/fixtures/`                                       |
 | `contract/`        | Backend contract: JSON Schemas, examples, `run-tests` command ([README](contract/README.md)) |

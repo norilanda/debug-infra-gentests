@@ -1,0 +1,14 @@
+{
+    "schemaVersion": 1,
+    "language": "java",
+    "target": {
+        "signature": "com.example.LineCounter.lineCount(java.lang.String,int)"
+    },
+    "captured": [
+        { "captureId": 1, "kind": "argument", "name": "arg0", "type": "java.lang.String" },
+        { "captureId": 2, "kind": "argument", "name": "arg1", "type": "int" }
+    ],
+    "traceMode": "naive",
+    "status": "ok",
+    "createdAt": "2026-10-31T17:52:17Z"
+}

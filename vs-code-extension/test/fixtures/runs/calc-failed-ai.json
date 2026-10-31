@@ -1,0 +1,15 @@
+{
+    "schemaVersion": 1,
+    "language": "java",
+    "target": {
+        "signature": "com.example.Calculator.add(int,int)"
+    },
+    "captured": [
+        { "captureId": 1, "kind": "argument", "name": "arg0", "type": "int" },
+        { "captureId": 2, "kind": "argument", "name": "arg1", "type": "int" }
+    ],
+    "traceMode": "naive",
+    "status": "failed",
+    "error": "LLM-based test generation failed: Anthropic API call failed: 401: {type=error, error={type=authentication_error, message=invalid x-api-key}} [Stage: Test Generation, Method: com.example.Calculator.add(int, int)]",
+    "createdAt": "2026-10-31T17:56:15Z"
+}
