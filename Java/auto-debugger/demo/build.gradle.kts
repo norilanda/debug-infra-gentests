@@ -76,9 +76,25 @@ tasks.register<Jar>("jarObjectsApp") {
     destinationDirectory.set(layout.projectDirectory.dir("apps/objects"))
 }
 
+tasks.register<JavaCompile>("compileLineCountApp") {
+    description = "Compile LineCount demo app"
+    source = fileTree("apps/linecount/src") { include("**/*.java") }
+    destinationDirectory.set(layout.buildDirectory.dir("classes/linecount"))
+    options.release.set(21)
+}
+
+tasks.register<Jar>("jarLineCountApp") {
+    description = "Package LineCount demo app"
+    dependsOn("compileLineCountApp")
+    archiveFileName.set("linecount-app.jar")
+    from(tasks.named<JavaCompile>("compileLineCountApp").get().destinationDirectory)
+    manifest.attributes(mapOf("Main-Class" to "com.example.LineCountApp"))
+    destinationDirectory.set(layout.projectDirectory.dir("apps/linecount"))
+}
+
 // Aggregate convenience task
 tasks.register("buildDemoApps") {
     description = "Build all demo application jars"
-    dependsOn("jarArgsApp", "jarFieldsApp", "jarStaticApp", "jarObjectsApp")
+    dependsOn("jarArgsApp", "jarFieldsApp", "jarStaticApp", "jarObjectsApp", "jarLineCountApp")
 }
 

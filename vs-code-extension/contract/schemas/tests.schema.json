@@ -1,0 +1,34 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:auto-debugger:contract:v1:tests",
+    "title": "tests.json",
+    "description": "The generated tests and the recorded calls each one reproduces. A callIndex appears in at most one test; a call that appears in no test has no test.",
+    "type": "object",
+    "required": ["schemaVersion", "tests"],
+    "properties": {
+        "schemaVersion": { "const": 1 },
+        "tests": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/test" }
+        }
+    },
+    "$defs": {
+        "test": {
+            "type": "object",
+            "required": ["testId", "callIndices"],
+            "properties": {
+                "testId": {
+                    "description": "Chosen by the backend. The extension doesn't interpret it: it only passes it back to run-tests unchanged. If it contains `#`, the part before the first `#` is shown as the test's group (e.g. its class) and the rest as its name; otherwise the whole `testId` is the name.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "callIndices": {
+                    "description": "The calls this test reproduces, ascending. Empty for a synthetic test (an input combination that never occurred in the run).",
+                    "type": "array",
+                    "items": { "type": "integer", "minimum": 0 },
+                    "uniqueItems": true
+                }
+            }
+        }
+    }
+}

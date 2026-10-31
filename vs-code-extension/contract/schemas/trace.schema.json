@@ -1,0 +1,62 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:auto-debugger:contract:v1:trace",
+    "title": "trace.json",
+    "description": "Every recorded call of the target procedure, in the order the calls started.",
+    "type": "object",
+    "required": ["schemaVersion", "calls"],
+    "properties": {
+        "schemaVersion": { "const": 1 },
+        "calls": {
+            "description": "Ordered by `callIndex`, which runs 0, 1, 2, … without gaps.",
+            "type": "array",
+            "items": { "$ref": "#/$defs/call" }
+        }
+    },
+    "$defs": {
+        "call": {
+            "type": "object",
+            "required": ["callIndex", "entry"],
+            "properties": {
+                "callIndex": { "type": "integer", "minimum": 0 },
+                "entry": {
+                    "$ref": "urn:auto-debugger:contract:v1:value#/$defs/snapshot",
+                    "description": "State when the call started."
+                },
+                "exit": {
+                    "description": "State when the call ended; `null` when the call didn't finish (e.g. the process died mid-call). Omitted when run.json says `recorded.exit: false`.",
+                    "oneOf": [
+                        { "$ref": "urn:auto-debugger:contract:v1:value#/$defs/snapshot" },
+                        { "type": "null" }
+                    ]
+                },
+                "outcome": {
+                    "description": "What the original call did. Omitted when the call didn't finish, and from every call when run.json says `recorded.outcome: false`.",
+                    "$ref": "#/$defs/outcome"
+                }
+            }
+        },
+        "outcome": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "required": ["kind"],
+                    "properties": { "kind": { "const": "returned" } }
+                },
+                {
+                    "type": "object",
+                    "required": ["kind", "exception"],
+                    "properties": {
+                        "kind": { "const": "threw" },
+                        "exception": {
+                            "description": "Exception type name, e.g. `java.lang.ArithmeticException`.",
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "message": { "type": ["string", "null"] }
+                    }
+                }
+            ]
+        }
+    }
+}

@@ -2,10 +2,13 @@ package cz.cuni.mff.d3s.autodebugger.runner;
 
 import cz.cuni.mff.d3s.autodebugger.analyzer.common.AnalysisResult;
 import cz.cuni.mff.d3s.autodebugger.runner.args.Arguments;
+import cz.cuni.mff.d3s.autodebugger.model.common.tests.TestSuite;
+import cz.cuni.mff.d3s.autodebugger.runner.export.RunExporter;
 import cz.cuni.mff.d3s.autodebugger.runner.orchestrator.Orchestrator;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -93,22 +96,37 @@ public class Runner {
     arguments.validateOrThrow();
     log.info("Arguments validated successfully");
 
-    var orchestrator = new Orchestrator(arguments);
-    log.info("Created orchestrator for language: {}", arguments.language.getDisplayName());
+    // run.json is written whether the run succeeds or fails; test execution below is not part of its status
+    Instant createdAt = Instant.now();
+    Orchestrator orchestrator = null;
+    Throwable failure = null;
+    TestSuite testSuite = null;
+    try {
+      orchestrator = new Orchestrator(arguments);
+      log.info("Created orchestrator for language: {}", arguments.language.getDisplayName());
 
-    var instrumentationModel = orchestrator.buildInstrumentationModel();
-    log.info("Built instrumentation model");
+      var instrumentationModel = orchestrator.buildInstrumentationModel();
+      log.info("Built instrumentation model");
 
-    var instrumentation = orchestrator.createInstrumentation(instrumentationModel);
-    log.info("Created instrumentation: {}", instrumentation);
+      var instrumentation = orchestrator.createInstrumentation(instrumentationModel);
+      log.info("Created instrumentation: {}", instrumentation);
 
-    log.info("Running analysis...");
-    var analysisResult = orchestrator.executeAnalysis(instrumentation);
-    log.info("Analysis completed. Trace at: {}", analysisResult.getTraceFilePath());
+      log.info("Running analysis...");
+      var analysisResult = orchestrator.executeAnalysis(instrumentation);
+      log.info("Analysis completed. Trace at: {}", analysisResult.getTraceFilePath());
 
-    log.info("Generating tests...");
-    var testSuite = orchestrator.generateTests(analysisResult);
-    log.info("Test generation completed. {} test files: {}", testSuite.getTestFiles().size(), testSuite.getTestFiles());
+      log.info("Generating tests...");
+      testSuite = orchestrator.generateTests(analysisResult);
+      log.info("Test generation completed. {} test files: {}", testSuite.getTestFiles().size(), testSuite.getTestFiles());
+    } catch (Throwable e) {
+      failure = e;
+      throw e;
+    } finally {
+      RunExporter.writeRunJson(arguments,
+        orchestrator != null ? orchestrator.getRunConfiguration() : null,
+        createdAt,
+        failure);
+    }
 
     var testResults = orchestrator.runTests(testSuite);
     log.info("Test execution completed. Overall results: {}. Details:\n{}", testResults, testResults.printFailedTestsNames());

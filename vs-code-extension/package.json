@@ -1,0 +1,119 @@
+{
+    "name": "auto-debugger",
+    "displayName": "Auto Debugger",
+    "description": "Step through recorded calls and run the tests generated for them.",
+    "version": "0.0.1",
+    "publisher": "auto-debugger",
+    "private": true,
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.95.0"
+    },
+    "categories": [
+        "Debuggers",
+        "Testing"
+    ],
+    "main": "./dist/extension.js",
+    "activationEvents": [],
+    "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "autoDebugger",
+                    "title": "Auto Debugger",
+                    "icon": "media/icon.svg"
+                }
+            ]
+        },
+        "views": {
+            "autoDebugger": [
+                {
+                    "id": "autoDebugger.runs",
+                    "name": "Runs",
+                    "icon": "media/icon.svg"
+                }
+            ]
+        },
+        "viewsWelcome": [
+            {
+                "view": "autoDebugger.runs",
+                "contents": "Choose the folder that holds the backend's run directories.\n[Set Output Root](command:autoDebugger.setOutputRoot)",
+                "when": "autoDebugger.runsView == noRoot"
+            },
+            {
+                "view": "autoDebugger.runs",
+                "contents": "The output root does not exist or is not a folder.\n[Set Output Root](command:autoDebugger.setOutputRoot)",
+                "when": "autoDebugger.runsView == missingRoot"
+            },
+            {
+                "view": "autoDebugger.runs",
+                "contents": "No runs found under the output root. A run is a folder with a run.json, written by the backend.\n[Refresh](command:autoDebugger.refreshRuns)\n[Set Output Root](command:autoDebugger.setOutputRoot)",
+                "when": "autoDebugger.runsView == empty"
+            }
+        ],
+        "commands": [
+            {
+                "command": "autoDebugger.refreshRuns",
+                "title": "Refresh Runs",
+                "category": "Auto Debugger",
+                "icon": "$(refresh)"
+            },
+            {
+                "command": "autoDebugger.setOutputRoot",
+                "title": "Set Output Root",
+                "category": "Auto Debugger",
+                "icon": "$(folder-opened)"
+            }
+        ],
+        "menus": {
+            "view/title": [
+                {
+                    "command": "autoDebugger.refreshRuns",
+                    "when": "view == autoDebugger.runs",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "autoDebugger.setOutputRoot",
+                    "when": "view == autoDebugger.runs",
+                    "group": "navigation@2"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "Auto Debugger",
+            "properties": {
+                "autoDebugger.outputRoot": {
+                    "type": "string",
+                    "default": "",
+                    "markdownDescription": "Folder that holds the run directories (folders with a `run.json`). Runs are found up to 5 levels deep; hidden folders and `node_modules` are skipped. A relative path is resolved against the first workspace folder; `~` is the home directory.",
+                    "scope": "machine-overridable"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "build": "node esbuild.mjs",
+        "watch": "node esbuild.mjs --watch",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint .",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "test": "vitest run",
+        "vscode:prepublish": "npm run typecheck && node esbuild.mjs --production"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@types/node": "^22.20.5",
+        "@types/vscode": "^1.95.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "esbuild": "^0.28.2",
+        "eslint": "^10.13.0",
+        "eslint-config-prettier": "^10.1.8",
+        "globals": "^17.13.0",
+        "prettier": "^3.9.10",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.72.1",
+        "vitest": "^5.0.5"
+    }
+}
