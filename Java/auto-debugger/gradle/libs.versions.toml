@@ -8,6 +8,7 @@ mockito = "5.18.0"
 picocli = "4.7.6"
 anthropic = "2.26.0"
 javaparser = "3.28.0"
+jackson = "2.18.2"
 
 # plugins
 changelog = "2.2.1"
@@ -31,6 +32,7 @@ mockito = { group = "org.mockito", name = "mockito-core", version.ref = "mockito
 picocli = { group = "info.picocli", name = "picocli", version.ref = "picocli" }
 anthropic-java = { group = "com.anthropic", name = "anthropic-java", version.ref = "anthropic" }
 javaparser-core = { group = "com.github.javaparser", name = "javaparser-core", version.ref = "javaparser" }
+jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
 
 [plugins]
 changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }

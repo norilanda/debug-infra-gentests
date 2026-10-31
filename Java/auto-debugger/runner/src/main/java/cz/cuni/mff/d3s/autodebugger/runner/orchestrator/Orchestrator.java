@@ -217,6 +217,10 @@ public class Orchestrator {
         return testRunner.executeTests(testSuite.getTestFiles());
     }
 
+    public RunConfiguration getRunConfiguration() {
+        return runConfiguration;
+    }
+
     public TargetLanguage getSupportedLanguage() {
         return runConfiguration.getLanguage();
     }

@@ -23,6 +23,7 @@ dependencies {
     implementation(project(mapOf("path" to ":test-runner-common")))
     implementation(project(":test-runner-java", "shadow"))
     implementation(libs.picocli)
+    implementation(libs.jackson.databind)
     implementation(platform(libs.log4j.bom))
     implementation(libs.log4j)
     testImplementation(platform(libs.junit.bom))
