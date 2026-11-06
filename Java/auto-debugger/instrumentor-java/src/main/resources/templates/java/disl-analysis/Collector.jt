@@ -8,6 +8,8 @@ import cz.cuni.mff.d3s.autodebugger.model.common.trace.RecordedEvent;
 import cz.cuni.mff.d3s.autodebugger.model.common.trace.RecordedEvents;
 import java.nio.file.Path;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
@@ -21,6 +23,7 @@ public class Collector extends RemoteAnalysis {
   private final String processName = "Receiving process";
   private final String identifierMappingFilePath = "${PATH}";
   private final String traceFilePath = "${TRACE_PATH}";
+  private final String callsFilePath = "${CALLS_PATH}";
   private final String traceMode = "${TRACE_MODE}";
 
   // Debug mode: set to true for verbose output, false for production
@@ -391,6 +394,8 @@ public class Collector extends RemoteAnalysis {
       }
     }
 
+    writeCallsFile();
+
     try {
       Path traceFile = Path.of(traceFilePath);
       Files.createDirectories(traceFile.getParent());
@@ -450,6 +455,34 @@ public class Collector extends RemoteAnalysis {
   }
 
 
+
+  /**
+   * Writes all recorded hook events to the calls file, in both trace modes.
+   * Writes to a temporary file first and then moves it into place, so a reader never sees half a file.
+   * A failure is logged and doesn't stop the trace file from being written.
+   */
+  private void writeCallsFile() {
+    Path callsFile = Path.of(callsFilePath);
+    Path tempFile = callsFile.resolveSibling(callsFile.getFileName() + ".tmp");
+
+    try {
+      Files.createDirectories(callsFile.getParent());
+      try (java.io.ObjectOutputStream objectStream = new java.io.ObjectOutputStream(Files.newOutputStream(tempFile))) {
+        objectStream.writeObject(recordedEvents);
+      }
+      
+      try {
+        Files.move(tempFile, callsFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+      } catch (AtomicMoveNotSupportedException e) {
+        Files.move(tempFile, callsFile, StandardCopyOption.REPLACE_EXISTING);
+      }
+      System.out.println(String.format(messageFormat, processName,
+          "Calls file written to: " + callsFile + " (" + recordedEvents.size() + " hook events)"));
+    } catch (Exception e) {
+      System.err.println(String.format(messageFormat, processName, "Error writing calls file: " + e.getMessage()));
+      e.printStackTrace();
+    }
+  }
 
   /**
    * Builds a Trace object from the collected invocations.

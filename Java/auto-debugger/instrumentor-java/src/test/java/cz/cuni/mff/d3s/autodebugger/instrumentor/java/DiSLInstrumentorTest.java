@@ -426,6 +426,8 @@ class DiSLInstrumentorTest {
         "Collector should have identifierMappingFilePath field");
     assertTrue(collectorContent.contains("private final String traceFilePath"),
         "Collector should have traceFilePath field");
+    assertTrue(collectorContent.contains("private final String callsFilePath"),
+        "Collector should have callsFilePath field");
     assertTrue(collectorContent.contains("public void atExit()"),
         "Collector should have atExit method for trace serialization");
 

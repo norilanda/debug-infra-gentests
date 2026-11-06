@@ -81,7 +81,9 @@ public class DiSLInstrumentor implements Instrumentor {
         Path resultsBaseDir = Optional.ofNullable(System.getenv("AUTODEBUGGER_RESULTS_DIR"))
                 .map(Path::of)
                 .orElse(TempPathResolver.getResultsDir(runConfiguration.getOutputDirectory()));
-        var traceFilePath = generateTraceFilePath(tracesBaseDir);
+        String traceRunId = generateTraceRunId();
+        var traceFilePath = generateTraceFilePath(tracesBaseDir, traceRunId);
+        var callsFilePath = generateCallsFilePath(tracesBaseDir, traceRunId);
         var resultsListPath = generateResultsListPath(resultsBaseDir);
         // No need to set a system property; analyzer will read from runConfiguration output directory
 
@@ -90,6 +92,7 @@ public class DiSLInstrumentor implements Instrumentor {
                 effectiveGeneratedCodeDir.resolve("Collector.java"),
                 Pair.with("PATH", identifierMapping.toAbsolutePath().toString()),
                 Pair.with("TRACE_PATH", traceFilePath.toAbsolutePath().toString()),
+                Pair.with("CALLS_PATH", callsFilePath.toAbsolutePath().toString()),
                 Pair.with("TRACE_MODE", runConfiguration.getTraceMode().name().toLowerCase()),
                 Pair.with("PARAM_COUNT", String.valueOf(runConfiguration.getExportableValues().size())));
         var instrumentationJarPath = generateDiSLClass(effectiveGeneratedCodeDir, model)
@@ -99,6 +102,7 @@ public class DiSLInstrumentor implements Instrumentor {
                 .primaryArtifact(instrumentationJarPath)
                 .identifiersMappingPath(identifierMapping)
                 .traceFilePath(traceFilePath)
+                .callsFilePath(callsFilePath)
                 .resultsListPath(resultsListPath)
                 .build();
     }
@@ -158,17 +162,30 @@ public class DiSLInstrumentor implements Instrumentor {
         }
     }
 
-    private Path generateTraceFilePath(Path outputDirectory) {
+    /** One id per run, shared by the trace file and the calls file so their names match. */
+    private String generateTraceRunId() {
+        return java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS")
+                .format(java.time.LocalDateTime.now()) + "-" + java.util.UUID.randomUUID();
+    }
+
+    /** Path of the trace file (Trace / IndexedTrace) that the collector writes for the generators. */
+    private Path generateTraceFilePath(Path outputDirectory, String traceRunId) {
+        return createDirectoryAndResolve(outputDirectory, String.format("trace-%s.ser", traceRunId));
+    }
+
+    /** Path of the calls file (RecordedEvents, all hook events in arrival order) that the collector writes. */
+    private Path generateCallsFilePath(Path outputDirectory, String traceRunId) {
+        return createDirectoryAndResolve(outputDirectory, String.format("calls-%s.ser", traceRunId));
+    }
+
+    private Path createDirectoryAndResolve(Path outputDirectory, String fileName) {
         try {
             if (!Files.exists(outputDirectory)) {
                 Files.createDirectories(outputDirectory);
             }
-            String runId = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS")
-                    .format(java.time.LocalDateTime.now()) + "-" + java.util.UUID.randomUUID();
-            String fileName = String.format("trace-%s.ser", runId);
             return outputDirectory.resolve(fileName);
         } catch (IOException e) {
-            log.error("Failed to create trace file path", e);
+            log.error("Failed to create directory for {}", fileName, e);
             throw new RuntimeException(e);
         }
     }
