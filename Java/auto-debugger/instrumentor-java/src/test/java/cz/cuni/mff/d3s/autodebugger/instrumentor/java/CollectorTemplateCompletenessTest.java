@@ -39,6 +39,7 @@ class CollectorTemplateCompletenessTest {
         assertTrue(re.contains("registerMethodWithDebug(\"Collector.collectString\")"));
         assertTrue(re.contains("registerMethodWithDebug(\"Collector.collectObject\")"));
         assertTrue(re.contains("registerMethodWithDebug(\"Collector.collectObjectJson\")"));
+        assertTrue(re.contains("registerMethodWithDebug(\"Collector.collectMarker\")"));
         assertTrue(re.contains("public static void startEvent(final boolean isEntryEvent)"));
         // method bodies include appropriate send* calls
         assertTrue(re.contains("sendByte("));
@@ -66,6 +67,7 @@ class CollectorTemplateCompletenessTest {
         assertTrue(c.contains("public void collectBoolean("));
         assertTrue(c.contains("public void collectString("));
         assertTrue(c.contains("public void collectObject("));
+        assertTrue(c.contains("public void collectMarker("));
     }
 }
 

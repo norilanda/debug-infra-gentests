@@ -6,6 +6,7 @@ import cz.cuni.mff.d3s.autodebugger.model.common.trace.IndexedTrace;
 import cz.cuni.mff.d3s.autodebugger.model.common.trace.ObjectSnapshot;
 import cz.cuni.mff.d3s.autodebugger.model.common.trace.RecordedEvent;
 import cz.cuni.mff.d3s.autodebugger.model.common.trace.RecordedEvents;
+import cz.cuni.mff.d3s.autodebugger.model.common.trace.ValueMarker;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -78,6 +79,16 @@ public class Collector extends RemoteAnalysis {
     if (currentEvent != null) {
       currentEvent.putValue(slotId, value);
     }
+  }
+
+  /**
+   * A value that CollectorRE couldn't send as a value; kind is the ordinal of its ValueMarker (NULL, SKIPPED, TRUNCATED).
+   * Goes into the event list only; the generators' invocations don't see it.
+   */
+  public void collectMarker(final int slotId, final byte kind) {
+    ValueMarker[] markers = ValueMarker.values();
+    ValueMarker marker = (kind >= 0 && kind < markers.length) ? markers[kind] : ValueMarker.SKIPPED;
+    recordInCurrentEvent(slotId, marker);
   }
 
 
@@ -275,7 +286,7 @@ public class Collector extends RemoteAnalysis {
 
     collectedValues.put(slotId, stringValue);
     currentInvocation.put(slotId, stringValue);
-    recordInCurrentEvent(slotId, stringValue);
+    recordInCurrentEvent(slotId, (stringValue != null) ? stringValue : ValueMarker.NULL);
 
     if (isInvocationComplete()) {
       Map<Integer, Object> completedInvocation = new HashMap<>(currentInvocation);
@@ -343,6 +354,7 @@ public class Collector extends RemoteAnalysis {
 
     if (json == null || json.isEmpty()) {
       System.out.println("*** COLLECTOR: collectObjectJson - no JSON data ***");
+      recordInCurrentEvent(slotId, ValueMarker.SKIPPED);
       return;
     }
 
@@ -356,6 +368,7 @@ public class Collector extends RemoteAnalysis {
 
     if (snapshot == null) {
       System.out.println("*** COLLECTOR: Failed to parse ObjectSnapshot from JSON ***");
+      recordInCurrentEvent(slotId, ValueMarker.SKIPPED);
       return;
     }
 

@@ -1,4 +1,5 @@
 import ch.usi.dag.dislre.REDispatch;
+import cz.cuni.mff.d3s.autodebugger.model.common.trace.ValueMarker;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
@@ -51,6 +52,7 @@ public class CollectorRE {
   private static short collectStringId = registerMethodWithDebug("Collector.collectString");
   private static short collectObjectId = registerMethodWithDebug("Collector.collectObject");
   private static short collectObjectJsonId = registerMethodWithDebug("Collector.collectObjectJson");
+  private static short collectMarkerId = registerMethodWithDebug("Collector.collectMarker");
 
   private static short registerMethodWithDebug(String methodName) {
     System.out.println("*** CollectorRE: Registering method " + methodName + " ***");
@@ -128,38 +130,54 @@ public class CollectorRE {
     REDispatch.analysisEnd();
   }
 
+  /**
+   * Tells the Collector that the value of a slot is replaced by a marker.
+   * DiSL can't carry an enum constant to the analysis VM, so the marker is sent as its ordinal.
+   */
+  public static void collectMarker(final int slotId, final ValueMarker marker) {
+    REDispatch.analysisStart(collectMarkerId);
+    REDispatch.sendInt(slotId);
+    REDispatch.sendByte((byte) marker.ordinal());
+    REDispatch.analysisEnd();
+  }
+
   public static void collectObject(final int slotId, final Object obj) {
     if (obj == null) {
-      return;  // Skip null objects
+      collectMarker(slotId, ValueMarker.NULL);
+      return;
     }
 
     // Check if this is a problematic type
     String className = obj.getClass().getName();
     for (String prefix : SKIP_TYPE_PREFIXES) {
       if (className.startsWith(prefix)) {
-        return;  // Skip problematic types
+        collectMarker(slotId, ValueMarker.SKIPPED);
+        return;
       }
     }
 
+    String json;
     try {
       // Serialize to JSON with depth limit
-      String json = serializeToJson(obj, MAX_OBJECT_DEPTH);
-
-      // Enforce max JSON length
-      if (json.length() > MAX_JSON_LENGTH) {
-        json = json.substring(0, MAX_JSON_LENGTH) + "...}";
-      }
-
-      REDispatch.analysisStart(collectObjectJsonId);
-      REDispatch.sendInt(slotId);
-      REDispatch.sendObjectPlusData(json);
-      REDispatch.analysisEnd();
+      json = serializeToJson(obj, MAX_OBJECT_DEPTH);
     } catch (Exception e) {
-      // Silently ignore serialization errors to avoid breaking instrumented code
+      // Don't let a serialization error break the instrumented code
+      collectMarker(slotId, ValueMarker.SKIPPED);
+      return;
     } finally {
       // Clear visited set for this thread
       VISITED.get().clear();
     }
+
+    if (json.length() > MAX_JSON_LENGTH) {
+      collectMarker(slotId, ValueMarker.TRUNCATED);
+      return;
+    }
+
+    REDispatch.analysisStart(collectObjectJsonId);
+    REDispatch.sendInt(slotId);
+    REDispatch.sendObjectPlusData(json);
+    REDispatch.analysisEnd();
   }
 
   // Thread-local visited set for cycle detection
