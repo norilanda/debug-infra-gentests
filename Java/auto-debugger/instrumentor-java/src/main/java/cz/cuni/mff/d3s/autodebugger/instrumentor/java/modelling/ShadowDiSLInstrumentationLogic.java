@@ -1,6 +1,7 @@
 package cz.cuni.mff.d3s.autodebugger.instrumentor.java.modelling;
 
 import cz.cuni.mff.d3s.autodebugger.instrumentor.common.modelling.Metaclass;
+import cz.cuni.mff.d3s.autodebugger.instrumentor.java.modelling.enums.ActivationTime;
 import cz.cuni.mff.d3s.autodebugger.model.common.identifiers.MethodIdentifier;
 import java.util.List;
 import lombok.Getter;
@@ -25,8 +26,9 @@ public class ShadowDiSLInstrumentationLogic extends DiSLInstrumentationLogic {
     }
     append(
         "System.out.println(\"[Instrumentation process] PID: \" + ProcessHandle.current().pid());\n");
-    // Start a new event for temporal tracing (no-op in naive mode)
-    append("CollectorRE.startEvent();\n");
+    // Start a new hook event: true in the entry hook (@Before), false in the exit hooks
+    boolean isEntryHook = annotation.getActivationTime() == ActivationTime.BEFORE;
+    append("CollectorRE.startEvent(" + isEntryHook + ");\n");
     for (JavaValue variable : exports) {
       append(variable.emitCollectorCode());
       append("\n");

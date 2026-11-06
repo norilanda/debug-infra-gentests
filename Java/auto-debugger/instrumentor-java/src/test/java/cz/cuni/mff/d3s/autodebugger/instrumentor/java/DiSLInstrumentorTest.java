@@ -357,8 +357,10 @@ class DiSLInstrumentorTest {
         "Should contain CollectorRE.collectString call");
     assertTrue(dislClassContent.contains("CollectorRE.collectInt("),
         "Should contain CollectorRE.collectInt call");
-    assertTrue(dislClassContent.contains("CollectorRE.startEvent();"),
-        "Should start a new event before collector calls");
+    assertTrue(dislClassContent.contains("CollectorRE.startEvent(true);"),
+        "Entry hook should start an entry event before collector calls");
+    assertTrue(dislClassContent.contains("CollectorRE.startEvent(false);"),
+        "Exit hook should start an exit event before collector calls");
   }
 
   /**

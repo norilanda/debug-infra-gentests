@@ -59,8 +59,9 @@ public class CollectorRE {
     return id;
   }
 
-  public static void startEvent() {
+  public static void startEvent(final boolean isEntryEvent) {
     REDispatch.analysisStart(startEventId);
+    REDispatch.sendBoolean(isEntryEvent);
     REDispatch.analysisEnd();
   }
 
