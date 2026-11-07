@@ -13,6 +13,7 @@ Templates
   - TRACE_MODE: either "naive" or "temporal"; controls Trace vs TemporalTrace and generator selection
 
 - Each hook starts a new event via CollectorRE.startEvent(isEntryEvent): true in the @Before hook, false in the @After / @AfterReturning hook. The Collector records the events in arrival order, each marked as entry or exit.
+- After its values, the exit hook sends how the call ended via CollectorRE.collectOutcome(di.getException()) (@After), or collectOutcome(null) (@AfterReturning, which runs only on normal return). The Collector attaches it to the exit event as returned, or threw with the exception class and message.
 
 Compilation and manifest
 - DiSLCompiler compiles DiSLClass.java, Collector.java, and CollectorRE.java into a JAR

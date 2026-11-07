@@ -62,7 +62,7 @@ class DiSLInstrumentationLogicTests {
   }
 
   @Test
-  void givenExitHookShadowInstrumentationLogic_whenGeneratingCode_thenStartsExitEvent() {
+  void givenExitHookShadowInstrumentationLogic_whenGeneratingCode_thenStartsExitEventAndCollectsOutcome() {
     // given
     var afterAnnotation = new DiSLAnnotation(ActivationTime.AFTER, Constants.dislMarker, Constants.dislScope);
     DiSLInstrumentationLogic logic =
@@ -80,6 +80,33 @@ class DiSLInstrumentationLogicTests {
       public static void generatedMethod1(DynamicContext di) {
       System.out.println("[Instrumentation process] PID: " + ProcessHandle.current().pid());
       CollectorRE.startEvent(false);
+      CollectorRE.collectOutcome(di.getException());
+      }
+      """;
+    assertEquals(normalizeVariableNames(expectedCode), normalizeVariableNames(code));
+  }
+
+  @Test
+  void givenAfterReturningHookShadowInstrumentationLogic_whenGeneratingCode_thenCollectsNormalReturn() {
+    // given
+    var afterReturningAnnotation =
+        new DiSLAnnotation(ActivationTime.AFTER_RETURNING, Constants.dislMarker, Constants.dislScope);
+    DiSLInstrumentationLogic logic =
+        new ShadowDiSLInstrumentationLogic(
+            Constants.instrumentationLogicMethodIdentifier,
+            afterReturningAnnotation,
+            Constants.instrumentationLogicExports);
+
+    // when
+    String code = logic.emitCode();
+
+    // then
+    String expectedCode = """
+      @AfterReturning(marker = BodyMarker.class, scope = "targets.extraction.Test.test")
+      public static void generatedMethod1(DynamicContext di) {
+      System.out.println("[Instrumentation process] PID: " + ProcessHandle.current().pid());
+      CollectorRE.startEvent(false);
+      CollectorRE.collectOutcome(null);
       }
       """;
     assertEquals(normalizeVariableNames(expectedCode), normalizeVariableNames(code));

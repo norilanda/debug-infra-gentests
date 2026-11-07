@@ -6,6 +6,7 @@ import cz.cuni.mff.d3s.autodebugger.model.common.trace.IndexedTrace;
 import cz.cuni.mff.d3s.autodebugger.model.common.trace.ObjectSnapshot;
 import cz.cuni.mff.d3s.autodebugger.model.common.trace.RecordedEvent;
 import cz.cuni.mff.d3s.autodebugger.model.common.trace.RecordedEvents;
+import cz.cuni.mff.d3s.autodebugger.model.common.trace.RecordedOutcome;
 import cz.cuni.mff.d3s.autodebugger.model.common.trace.ValueMarker;
 import java.nio.file.Path;
 import java.nio.file.Files;
@@ -89,6 +90,26 @@ public class Collector extends RemoteAnalysis {
     ValueMarker[] markers = ValueMarker.values();
     ValueMarker marker = (kind >= 0 && kind < markers.length) ? markers[kind] : ValueMarker.SKIPPED;
     recordInCurrentEvent(slotId, marker);
+  }
+
+  /**
+   * How the call ended, sent by the exit hook after its values. Attached to the current event, which is the exit event
+   * the hook opened. exceptionClass and message are null when the call returned normally; message can also be null
+   * for an exception without one.
+   */
+  public void collectOutcome(final boolean threw, final ShadowObject exceptionClass, final ShadowObject message) {
+    if ((currentEvent == null) || currentEvent.isEntryEvent()) {
+      System.err.println(String.format(messageFormat, processName, "Outcome received outside an exit event - ignored"));
+      return;
+    }
+    RecordedOutcome outcome = threw
+        ? RecordedOutcome.threwException(shadowStringValue(exceptionClass), shadowStringValue(message))
+        : RecordedOutcome.returnedNormally();
+    currentEvent.setOutcome(outcome);
+  }
+
+  private static String shadowStringValue(final ShadowObject value) {
+    return (value instanceof ShadowString shadowString) ? shadowString.toString() : null;
   }
 
 
@@ -278,11 +299,7 @@ public class Collector extends RemoteAnalysis {
     System.out.println("*** COLLECTOR: collectString called with trace slotID=" + slotId + ", value=" + s + " ***");
     System.out.println(String.format(messageFormat, processName, String.format("Collecting string: %s", s)));
 
-    // Extract the actual String value from ShadowString
-    String stringValue = null;
-    if (s instanceof ShadowString shadowString) {
-      stringValue = shadowString.toString();
-    }
+    String stringValue = shadowStringValue(s);
 
     collectedValues.put(slotId, stringValue);
     currentInvocation.put(slotId, stringValue);

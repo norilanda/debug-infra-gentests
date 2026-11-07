@@ -17,6 +17,7 @@ public class CollectorRE {
   private static final int MAX_OBJECT_DEPTH = 2;
   private static final int MAX_FIELDS_PER_OBJECT = 50;
   private static final int MAX_JSON_LENGTH = 64 * 1024;  // 64KB
+  private static final int MAX_MESSAGE_LENGTH = 4 * 1024;  // exception messages are cut to this length
 
   // Types to skip (cause issues or are not useful for test generation)
   private static final Set<String> SKIP_TYPE_PREFIXES = Set.of(
@@ -53,6 +54,7 @@ public class CollectorRE {
   private static short collectObjectId = registerMethodWithDebug("Collector.collectObject");
   private static short collectObjectJsonId = registerMethodWithDebug("Collector.collectObjectJson");
   private static short collectMarkerId = registerMethodWithDebug("Collector.collectMarker");
+  private static short collectOutcomeId = registerMethodWithDebug("Collector.collectOutcome");
 
   private static short registerMethodWithDebug(String methodName) {
     System.out.println("*** CollectorRE: Registering method " + methodName + " ***");
@@ -138,6 +140,34 @@ public class CollectorRE {
     REDispatch.analysisStart(collectMarkerId);
     REDispatch.sendInt(slotId);
     REDispatch.sendByte((byte) marker.ordinal());
+    REDispatch.analysisEnd();
+  }
+
+  /**
+   * Tells the Collector how the call ended, from the exit hook: thrown is the exception the call threw,
+   * or null if it returned normally.
+   */
+  public static void collectOutcome(final Throwable thrown) {
+    String exceptionClass = null;
+    String message = null;
+    if (thrown != null) {
+      exceptionClass = thrown.getClass().getName();
+      try {
+        // A user exception can override getMessage() and throw
+        message = thrown.getMessage();
+      } catch (Exception e) {
+        message = null;
+      }
+      // DiSL can't send a String over 64 KB
+      if ((message != null) && (message.length() > MAX_MESSAGE_LENGTH)) {
+        message = message.substring(0, MAX_MESSAGE_LENGTH);
+      }
+    }
+
+    REDispatch.analysisStart(collectOutcomeId);
+    REDispatch.sendBoolean(thrown != null);
+    REDispatch.sendObjectPlusData(exceptionClass);
+    REDispatch.sendObjectPlusData(message);
     REDispatch.analysisEnd();
   }
 
