@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
@@ -261,9 +262,17 @@ public class CollectorRE {
     StringBuilder sb = new StringBuilder();
     // $class must come first: JsonObjectParser requires it
     sb.append("{\"$class\":\"").append(className).append("\",\"$id\":").append(id);
+    // Declared types of the written fields, in the same order.
+    List<String> fieldTypes = new ArrayList<>();
 
+    // A JSON key can appear once: if a subclass field hides a superclass field of the same name,
+    // keep only the subclass one (listed first), so $fieldTypes has one entry per key.
+    Set<String> handledFieldNames = new HashSet<>();
     int fieldCount = 0;
     for (Field f : getAllInstanceFields(clazz)) {
+      if (!handledFieldNames.add(f.getName())) {
+        continue;
+      }
       if (fieldCount++ >= MAX_FIELDS_PER_OBJECT) {
         break;  // Safety limit
       }
@@ -273,11 +282,15 @@ public class CollectorRE {
         Object value = f.get(obj);
         sb.append(",\"").append(f.getName()).append("\":");
         sb.append(serializeValue(value, f.getType(), maxDepth - 1));
+        fieldTypes.add(f.getType().getTypeName());
       } catch (IllegalAccessException | InaccessibleObjectException e) {
         // Skip inaccessible fields (can happen with module system restrictions)
       }
     }
 
+    sb.append(",\"$fieldTypes\":\"")
+      .append(escapeJson(String.join(",", fieldTypes)))
+      .append("\"");
     sb.append("}");
     return sb.toString();
   }

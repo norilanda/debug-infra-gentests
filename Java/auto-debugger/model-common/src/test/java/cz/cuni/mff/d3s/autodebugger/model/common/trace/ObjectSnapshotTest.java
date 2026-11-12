@@ -105,6 +105,21 @@ class ObjectSnapshotTest {
         assertEquals(1, child.getField("$id"));
         assertEquals("$cycle:0", child.getField("parent")); // Cycle marker stored as string
     }
+
+    @Test
+    void givenJsonWithFieldTypes_whenParsing_thenFieldTypesStoredAsString() {
+        // Given
+        String json = "{\"$class\":\"com.example.Point\",\"$id\":0,"
+            + "\"x\":3,\"y\":4,\"tags\":\"$ref:[I\",\"$fieldTypes\":\"short,long,int[]\"}";
+
+        // When
+        ObjectSnapshot snapshot = ObjectSnapshot.fromJson(json);
+
+        // Then
+        assertNotNull(snapshot);
+        assertEquals("short,long,int[]", snapshot.getField("$fieldTypes"));
+        assertEquals(3, snapshot.getField("x"));
+    }
     
     @Test
     void givenObjectSnapshot_whenSerialized_thenCanBeDeserialized() throws Exception {
