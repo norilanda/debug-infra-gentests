@@ -361,6 +361,8 @@ class DiSLInstrumentorTest {
         "Entry hook should start an entry event before collector calls");
     assertTrue(dislClassContent.contains("CollectorRE.startEvent(false);"),
         "Exit hook should start an exit event before collector calls");
+    assertTrue(dislClassContent.contains("CollectorRE.collectOutcome(di.getException());"),
+        "Exit hook should record whether the call returned or threw");
   }
 
   /**
