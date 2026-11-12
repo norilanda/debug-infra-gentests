@@ -381,7 +381,13 @@ public class Collector extends RemoteAnalysis {
     }
 
     // Parse JSON into ObjectSnapshot
-    ObjectSnapshot snapshot = ObjectSnapshot.fromJson(json);
+    ObjectSnapshot snapshot;
+    try {
+      snapshot = ObjectSnapshot.fromJson(json);
+    } catch (RuntimeException e) {
+      System.out.println("*** COLLECTOR: " + e.getMessage() + " ***");
+      snapshot = null;
+    }
 
     if (snapshot == null) {
       System.out.println("*** COLLECTOR: Failed to parse ObjectSnapshot from JSON ***");
@@ -417,14 +423,6 @@ public class Collector extends RemoteAnalysis {
     System.out.println(String.format(messageFormat, processName, "Collected " + allInvocations.size() + " invocations"));
     System.out.println(String.format(messageFormat, processName, "Trace mode: " + traceMode));
     System.out.println(String.format(messageFormat, processName, "Recorded " + recordedEvents.size() + " hook events"));
-    if (DEBUG) {
-      List<RecordedEvent> events = recordedEvents.getEvents();
-      for (int i = 0; i < events.size(); i++) {
-        System.out.println(String.format(messageFormat, processName, "Event " + i + ": " + events.get(i)));
-      }
-    }
-
-    writeCallsFile();
 
     try {
       Path traceFile = Path.of(traceFilePath);
@@ -481,6 +479,8 @@ public class Collector extends RemoteAnalysis {
     } catch (Exception e) {
       System.err.println(String.format(messageFormat, processName, "Error during trace serialization: " + e.getMessage()));
       e.printStackTrace();
+    } finally {
+      writeCallsFile();
     }
   }
 
