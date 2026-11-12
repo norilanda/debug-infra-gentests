@@ -92,14 +92,33 @@ class ObjectSnapshotTest {
     @Test
     void givenJsonWithCycleMarker_whenParsing_thenCycleMarkerStoredAsString() {
         // Given
-        String json = "{\"$class\":\"com.example.Node\",\"parent\":\"$cycle\"}";
+        String json = "{\"$class\":\"com.example.Node\",\"$id\":0,\"child\":"
+            + "{\"$class\":\"com.example.Node\",\"$id\":1,\"parent\":\"$cycle:0\"}}";
 
         // When
         ObjectSnapshot snapshot = ObjectSnapshot.fromJson(json);
 
         // Then
         assertNotNull(snapshot);
-        assertEquals("$cycle", snapshot.getField("parent")); // Cycle marker stored as string
+        assertEquals(0, snapshot.getField("$id"));
+        ObjectSnapshot child = assertInstanceOf(ObjectSnapshot.class, snapshot.getField("child"));
+        assertEquals(1, child.getField("$id"));
+        assertEquals("$cycle:0", child.getField("parent")); // Cycle marker stored as string
+    }
+
+    @Test
+    void givenJsonWithFieldTypes_whenParsing_thenFieldTypesStoredAsString() {
+        // Given
+        String json = "{\"$class\":\"com.example.Point\",\"$id\":0,"
+            + "\"x\":3,\"y\":4,\"tags\":\"$ref:[I\",\"$fieldTypes\":\"short,long,int[]\"}";
+
+        // When
+        ObjectSnapshot snapshot = ObjectSnapshot.fromJson(json);
+
+        // Then
+        assertNotNull(snapshot);
+        assertEquals("short,long,int[]", snapshot.getField("$fieldTypes"));
+        assertEquals(3, snapshot.getField("x"));
     }
     
     @Test

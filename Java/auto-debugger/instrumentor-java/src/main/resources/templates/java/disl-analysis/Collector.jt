@@ -4,8 +4,14 @@ import ch.usi.dag.dislreserver.shadow.ShadowString;
 import cz.cuni.mff.d3s.autodebugger.model.common.trace.Trace;
 import cz.cuni.mff.d3s.autodebugger.model.common.trace.IndexedTrace;
 import cz.cuni.mff.d3s.autodebugger.model.common.trace.ObjectSnapshot;
+import cz.cuni.mff.d3s.autodebugger.model.common.trace.RecordedEvent;
+import cz.cuni.mff.d3s.autodebugger.model.common.trace.RecordedEvents;
+import cz.cuni.mff.d3s.autodebugger.model.common.trace.RecordedOutcome;
+import cz.cuni.mff.d3s.autodebugger.model.common.trace.ValueMarker;
 import java.nio.file.Path;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
@@ -19,6 +25,7 @@ public class Collector extends RemoteAnalysis {
   private final String processName = "Receiving process";
   private final String identifierMappingFilePath = "${PATH}";
   private final String traceFilePath = "${TRACE_PATH}";
+  private final String callsFilePath = "${CALLS_PATH}";
   private final String traceMode = "${TRACE_MODE}";
 
   // Debug mode: set to true for verbose output, false for production
@@ -29,6 +36,9 @@ public class Collector extends RemoteAnalysis {
   private java.util.List<Map<Integer, Object>> allInvocations = new java.util.ArrayList<>();
   private Map<Integer, Object> currentInvocation = new HashMap<>();
   private int currentEventIndex = 0;
+
+  private final RecordedEvents recordedEvents = new RecordedEvents();
+  private RecordedEvent currentEvent = null;
 
   public Collector() {
     System.out.println("*** COLLECTOR CONSTRUCTOR CALLED ***");
@@ -57,10 +67,49 @@ public class Collector extends RemoteAnalysis {
     System.out.println(String.format(messageFormat, processName, String.format("PID: %s", (long) ProcessHandle.current().pid())));
   }
 
-  public void startEvent() {
+  public void startEvent(final boolean isEntryEvent) {
+    currentEvent = new RecordedEvent(isEntryEvent);
+    recordedEvents.add(currentEvent);
+
     if ("temporal".equalsIgnoreCase(traceMode)) {
       currentEventIndex++;
     }
+  }
+
+  private void recordInCurrentEvent(final int slotId, final Object value) {
+    if (currentEvent != null) {
+      currentEvent.putValue(slotId, value);
+    }
+  }
+
+  /**
+   * A value that CollectorRE couldn't send as a value; kind is the ordinal of its ValueMarker (NULL, SKIPPED, TRUNCATED).
+   * Goes into the event list only; the generators' invocations don't see it.
+   */
+  public void collectMarker(final int slotId, final byte kind) {
+    ValueMarker[] markers = ValueMarker.values();
+    ValueMarker marker = (kind >= 0 && kind < markers.length) ? markers[kind] : ValueMarker.SKIPPED;
+    recordInCurrentEvent(slotId, marker);
+  }
+
+  /**
+   * How the call ended, sent by the exit hook after its values. Attached to the current event, which is the exit event
+   * the hook opened. exceptionClass and message are null when the call returned normally; message can also be null
+   * for an exception without one.
+   */
+  public void collectOutcome(final boolean threw, final ShadowObject exceptionClass, final ShadowObject message) {
+    if ((currentEvent == null) || currentEvent.isEntryEvent()) {
+      System.err.println(String.format(messageFormat, processName, "Outcome received outside an exit event - ignored"));
+      return;
+    }
+    RecordedOutcome outcome = threw
+        ? RecordedOutcome.threwException(shadowStringValue(exceptionClass), shadowStringValue(message))
+        : RecordedOutcome.returnedNormally();
+    currentEvent.setOutcome(outcome);
+  }
+
+  private static String shadowStringValue(final ShadowObject value) {
+    return (value instanceof ShadowString shadowString) ? shadowString.toString() : null;
   }
 
 
@@ -78,6 +127,7 @@ public class Collector extends RemoteAnalysis {
 
     // Store in current invocation
     currentInvocation.put(slotId, i);
+    recordInCurrentEvent(slotId, i);
 
     // Check if we have collected all parameters for this invocation
     // For naive mode, we expect to collect all parameters before completing the invocation
@@ -113,6 +163,7 @@ public class Collector extends RemoteAnalysis {
 
     collectedValues.put(slotId, b);
     currentInvocation.put(slotId, b);
+    recordInCurrentEvent(slotId, b);
 
     if (isInvocationComplete()) {
       Map<Integer, Object> completedInvocation = new HashMap<>(currentInvocation);
@@ -135,6 +186,7 @@ public class Collector extends RemoteAnalysis {
 
     collectedValues.put(slotId, c);
     currentInvocation.put(slotId, c);
+    recordInCurrentEvent(slotId, c);
 
     if (isInvocationComplete()) {
       Map<Integer, Object> completedInvocation = new HashMap<>(currentInvocation);
@@ -157,6 +209,7 @@ public class Collector extends RemoteAnalysis {
 
     collectedValues.put(slotId, s);
     currentInvocation.put(slotId, s);
+    recordInCurrentEvent(slotId, s);
 
     if (isInvocationComplete()) {
       Map<Integer, Object> completedInvocation = new HashMap<>(currentInvocation);
@@ -179,6 +232,7 @@ public class Collector extends RemoteAnalysis {
 
     collectedValues.put(slotId, l);
     currentInvocation.put(slotId, l);
+    recordInCurrentEvent(slotId, l);
 
     if (isInvocationComplete()) {
       Map<Integer, Object> completedInvocation = new HashMap<>(currentInvocation);
@@ -201,6 +255,7 @@ public class Collector extends RemoteAnalysis {
 
     collectedValues.put(slotId, f);
     currentInvocation.put(slotId, f);
+    recordInCurrentEvent(slotId, f);
 
     if (isInvocationComplete()) {
       Map<Integer, Object> completedInvocation = new HashMap<>(currentInvocation);
@@ -223,6 +278,7 @@ public class Collector extends RemoteAnalysis {
 
     collectedValues.put(slotId, z);
     currentInvocation.put(slotId, z);
+    recordInCurrentEvent(slotId, z);
 
     if (isInvocationComplete()) {
       Map<Integer, Object> completedInvocation = new HashMap<>(currentInvocation);
@@ -243,14 +299,11 @@ public class Collector extends RemoteAnalysis {
     System.out.println("*** COLLECTOR: collectString called with trace slotID=" + slotId + ", value=" + s + " ***");
     System.out.println(String.format(messageFormat, processName, String.format("Collecting string: %s", s)));
 
-    // Extract the actual String value from ShadowString
-    String stringValue = null;
-    if (s instanceof ShadowString shadowString) {
-      stringValue = shadowString.toString();
-    }
+    String stringValue = shadowStringValue(s);
 
     collectedValues.put(slotId, stringValue);
     currentInvocation.put(slotId, stringValue);
+    recordInCurrentEvent(slotId, (stringValue != null) ? stringValue : ValueMarker.NULL);
 
     if (isInvocationComplete()) {
       Map<Integer, Object> completedInvocation = new HashMap<>(currentInvocation);
@@ -274,6 +327,7 @@ public class Collector extends RemoteAnalysis {
 
     collectedValues.put(slotId, d);
     currentInvocation.put(slotId, d);
+    recordInCurrentEvent(slotId, d);
 
     if (isInvocationComplete()) {
       Map<Integer, Object> completedInvocation = new HashMap<>(currentInvocation);
@@ -317,6 +371,7 @@ public class Collector extends RemoteAnalysis {
 
     if (json == null || json.isEmpty()) {
       System.out.println("*** COLLECTOR: collectObjectJson - no JSON data ***");
+      recordInCurrentEvent(slotId, ValueMarker.SKIPPED);
       return;
     }
 
@@ -326,16 +381,24 @@ public class Collector extends RemoteAnalysis {
     }
 
     // Parse JSON into ObjectSnapshot
-    ObjectSnapshot snapshot = ObjectSnapshot.fromJson(json);
+    ObjectSnapshot snapshot;
+    try {
+      snapshot = ObjectSnapshot.fromJson(json);
+    } catch (RuntimeException e) {
+      System.out.println("*** COLLECTOR: " + e.getMessage() + " ***");
+      snapshot = null;
+    }
 
     if (snapshot == null) {
       System.out.println("*** COLLECTOR: Failed to parse ObjectSnapshot from JSON ***");
+      recordInCurrentEvent(slotId, ValueMarker.SKIPPED);
       return;
     }
 
     // Store in current invocation (matches existing pattern)
     collectedValues.put(slotId, snapshot);
     currentInvocation.put(slotId, snapshot);
+    recordInCurrentEvent(slotId, snapshot);
 
     if (isInvocationComplete()) {
       Map<Integer, Object> completedInvocation = new HashMap<>(currentInvocation);
@@ -359,6 +422,7 @@ public class Collector extends RemoteAnalysis {
     System.out.println(String.format(messageFormat, processName, "Exiting analysis..."));
     System.out.println(String.format(messageFormat, processName, "Collected " + allInvocations.size() + " invocations"));
     System.out.println(String.format(messageFormat, processName, "Trace mode: " + traceMode));
+    System.out.println(String.format(messageFormat, processName, "Recorded " + recordedEvents.size() + " hook events"));
 
     try {
       Path traceFile = Path.of(traceFilePath);
@@ -415,10 +479,40 @@ public class Collector extends RemoteAnalysis {
     } catch (Exception e) {
       System.err.println(String.format(messageFormat, processName, "Error during trace serialization: " + e.getMessage()));
       e.printStackTrace();
+    } finally {
+      writeCallsFile();
     }
   }
 
 
+
+  /**
+   * Writes all recorded hook events to the calls file, in both trace modes.
+   * Writes to a temporary file first and then moves it into place, so a reader never sees half a file.
+   * A failure is logged and doesn't stop the trace file from being written.
+   */
+  private void writeCallsFile() {
+    Path callsFile = Path.of(callsFilePath);
+    Path tempFile = callsFile.resolveSibling(callsFile.getFileName() + ".tmp");
+
+    try {
+      Files.createDirectories(callsFile.getParent());
+      try (java.io.ObjectOutputStream objectStream = new java.io.ObjectOutputStream(Files.newOutputStream(tempFile))) {
+        objectStream.writeObject(recordedEvents);
+      }
+      
+      try {
+        Files.move(tempFile, callsFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+      } catch (AtomicMoveNotSupportedException e) {
+        Files.move(tempFile, callsFile, StandardCopyOption.REPLACE_EXISTING);
+      }
+      System.out.println(String.format(messageFormat, processName,
+          "Calls file written to: " + callsFile + " (" + recordedEvents.size() + " hook events)"));
+    } catch (Exception e) {
+      System.err.println(String.format(messageFormat, processName, "Error writing calls file: " + e.getMessage()));
+      e.printStackTrace();
+    }
+  }
 
   /**
    * Builds a Trace object from the collected invocations.

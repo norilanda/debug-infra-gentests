@@ -1,8 +1,10 @@
 import ch.usi.dag.dislre.REDispatch;
+import cz.cuni.mff.d3s.autodebugger.model.common.trace.ValueMarker;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
@@ -16,6 +18,7 @@ public class CollectorRE {
   private static final int MAX_OBJECT_DEPTH = 2;
   private static final int MAX_FIELDS_PER_OBJECT = 50;
   private static final int MAX_JSON_LENGTH = 64 * 1024;  // 64KB
+  private static final int MAX_MESSAGE_LENGTH = 4 * 1024;  // exception messages are cut to this length
 
   // Types to skip (cause issues or are not useful for test generation)
   private static final Set<String> SKIP_TYPE_PREFIXES = Set.of(
@@ -35,9 +38,22 @@ public class CollectorRE {
     "com.sun."
   );
 
-  // Thread-local visited set for cycle detection
-  private static final ThreadLocal<IdentityHashMap<Object, Boolean>> VISITED =
-    ThreadLocal.withInitial(IdentityHashMap::new);
+  /**
+   * Numbers the objects of one value as they are written, so a cycle can refer back to an earlier object by its number.
+   */
+  private static final class SerializationState {
+    // The objects on the path from the value's root to the current object, with their ids
+    final IdentityHashMap<Object, Integer> idsOnPath = new IdentityHashMap<>();
+    int nextId = 0;
+
+    void reset() {
+      idsOnPath.clear();
+      nextId = 0;
+    }
+  }
+
+  private static final ThreadLocal<SerializationState> SERIALIZATION_STATE =
+    ThreadLocal.withInitial(SerializationState::new);
 
   private static short startEventId = registerMethodWithDebug("Collector.startEvent");
   private static short collectByteId = registerMethodWithDebug("Collector.collectByte");
@@ -51,6 +67,8 @@ public class CollectorRE {
   private static short collectStringId = registerMethodWithDebug("Collector.collectString");
   private static short collectObjectId = registerMethodWithDebug("Collector.collectObject");
   private static short collectObjectJsonId = registerMethodWithDebug("Collector.collectObjectJson");
+  private static short collectMarkerId = registerMethodWithDebug("Collector.collectMarker");
+  private static short collectOutcomeId = registerMethodWithDebug("Collector.collectOutcome");
 
   private static short registerMethodWithDebug(String methodName) {
     System.out.println("*** CollectorRE: Registering method " + methodName + " ***");
@@ -59,8 +77,9 @@ public class CollectorRE {
     return id;
   }
 
-  public static void startEvent() {
+  public static void startEvent(final boolean isEntryEvent) {
     REDispatch.analysisStart(startEventId);
+    REDispatch.sendBoolean(isEntryEvent);
     REDispatch.analysisEnd();
   }
 
@@ -127,63 +146,108 @@ public class CollectorRE {
     REDispatch.analysisEnd();
   }
 
+  /**
+   * Tells the Collector that the value of a slot is replaced by a marker.
+   * DiSL can't carry an enum constant to the analysis VM, so the marker is sent as its ordinal.
+   */
+  public static void collectMarker(final int slotId, final ValueMarker marker) {
+    REDispatch.analysisStart(collectMarkerId);
+    REDispatch.sendInt(slotId);
+    REDispatch.sendByte((byte) marker.ordinal());
+    REDispatch.analysisEnd();
+  }
+
+  /**
+   * Tells the Collector how the call ended, from the exit hook: thrown is the exception the call threw,
+   * or null if it returned normally.
+   */
+  public static void collectOutcome(final Throwable thrown) {
+    String exceptionClass = null;
+    String message = null;
+    if (thrown != null) {
+      exceptionClass = thrown.getClass().getName();
+      try {
+        // A user exception can override getMessage() and throw
+        message = thrown.getMessage();
+      } catch (Exception e) {
+        message = null;
+      }
+      // DiSL can't send a String over 64 KB
+      if ((message != null) && (message.length() > MAX_MESSAGE_LENGTH)) {
+        message = message.substring(0, MAX_MESSAGE_LENGTH);
+      }
+    }
+
+    REDispatch.analysisStart(collectOutcomeId);
+    REDispatch.sendBoolean(thrown != null);
+    REDispatch.sendObjectPlusData(exceptionClass);
+    REDispatch.sendObjectPlusData(message);
+    REDispatch.analysisEnd();
+  }
+
   public static void collectObject(final int slotId, final Object obj) {
     if (obj == null) {
-      return;  // Skip null objects
+      collectMarker(slotId, ValueMarker.NULL);
+      return;
     }
 
     // Check if this is a problematic type
     String className = obj.getClass().getName();
     for (String prefix : SKIP_TYPE_PREFIXES) {
       if (className.startsWith(prefix)) {
-        return;  // Skip problematic types
+        collectMarker(slotId, ValueMarker.SKIPPED);
+        return;
       }
     }
 
+    String json;
     try {
       // Serialize to JSON with depth limit
-      String json = serializeToJson(obj, MAX_OBJECT_DEPTH);
-
-      // Enforce max JSON length
-      if (json.length() > MAX_JSON_LENGTH) {
-        json = json.substring(0, MAX_JSON_LENGTH) + "...}";
-      }
-
-      REDispatch.analysisStart(collectObjectJsonId);
-      REDispatch.sendInt(slotId);
-      REDispatch.sendObjectPlusData(json);
-      REDispatch.analysisEnd();
+      json = serializeToJson(obj, MAX_OBJECT_DEPTH);
     } catch (Exception e) {
-      // Silently ignore serialization errors to avoid breaking instrumented code
+      // Don't let a serialization error break the instrumented code
+      collectMarker(slotId, ValueMarker.SKIPPED);
+      return;
     } finally {
-      // Clear visited set for this thread
-      VISITED.get().clear();
+      SERIALIZATION_STATE.get().reset();
     }
+
+    if (json.length() > MAX_JSON_LENGTH) {
+      collectMarker(slotId, ValueMarker.TRUNCATED);
+      return;
+    }
+
+    REDispatch.analysisStart(collectObjectJsonId);
+    REDispatch.sendInt(slotId);
+    REDispatch.sendObjectPlusData(json);
+    REDispatch.analysisEnd();
   }
 
-  // Thread-local visited set for cycle detection
   private static String serializeToJson(Object obj, int maxDepth) {
     if (obj == null) {
       return "null";
     }
+
+    SerializationState state = SERIALIZATION_STATE.get();
+    Integer enclosingId = state.idsOnPath.get(obj);
+    if (enclosingId != null) {
+      return "\"$cycle:" + enclosingId + "\"";
+    }
+
     if (maxDepth <= 0) {
       return "\"$ref:" + obj.getClass().getName() + "\"";
     }
 
-    IdentityHashMap<Object, Boolean> visited = VISITED.get();
-    if (visited.containsKey(obj)) {
-      return "\"$cycle\"";  // Cycle detected
-    }
-
+    int id = state.nextId++;
     try {
-      visited.put(obj, Boolean.TRUE);
-      return buildJsonObject(obj, maxDepth);
+      state.idsOnPath.put(obj, id);
+      return buildJsonObject(obj, id, maxDepth);
     } finally {
-      visited.remove(obj);
+      state.idsOnPath.remove(obj);
     }
   }
 
-  private static String buildJsonObject(Object obj, int maxDepth) {
+  private static String buildJsonObject(Object obj, int id, int maxDepth) {
     Class<?> clazz = obj.getClass();
     String className = clazz.getName();
 
@@ -191,14 +255,24 @@ public class CollectorRE {
     // This avoids InaccessibleObjectException from Java module system
     if (className.startsWith("java.") || className.startsWith("javax.") ||
         className.startsWith("sun.") || className.startsWith("jdk.")) {
-      return "{\"$class\":\"" + className + "\",\"$value\":\"" + escapeJson(obj.toString()) + "\"}";
+      return "{\"$class\":\"" + className + "\",\"$id\":" + id
+        + ",\"$value\":\"" + escapeJson(obj.toString()) + "\"}";
     }
 
     StringBuilder sb = new StringBuilder();
-    sb.append("{\"$class\":\"").append(className).append("\"");
+    // $class must come first: JsonObjectParser requires it
+    sb.append("{\"$class\":\"").append(className).append("\",\"$id\":").append(id);
+    // Declared types of the written fields, in the same order.
+    List<String> fieldTypes = new ArrayList<>();
 
+    // A JSON key can appear once: if a subclass field hides a superclass field of the same name,
+    // keep only the subclass one (listed first), so $fieldTypes has one entry per key.
+    Set<String> handledFieldNames = new HashSet<>();
     int fieldCount = 0;
     for (Field f : getAllInstanceFields(clazz)) {
+      if (!handledFieldNames.add(f.getName())) {
+        continue;
+      }
       if (fieldCount++ >= MAX_FIELDS_PER_OBJECT) {
         break;  // Safety limit
       }
@@ -208,11 +282,15 @@ public class CollectorRE {
         Object value = f.get(obj);
         sb.append(",\"").append(f.getName()).append("\":");
         sb.append(serializeValue(value, f.getType(), maxDepth - 1));
+        fieldTypes.add(f.getType().getTypeName());
       } catch (IllegalAccessException | InaccessibleObjectException e) {
         // Skip inaccessible fields (can happen with module system restrictions)
       }
     }
 
+    sb.append(",\"$fieldTypes\":\"")
+      .append(escapeJson(String.join(",", fieldTypes)))
+      .append("\"");
     sb.append("}");
     return sb.toString();
   }

@@ -39,6 +39,9 @@ class CollectorTemplateCompletenessTest {
         assertTrue(re.contains("registerMethodWithDebug(\"Collector.collectString\")"));
         assertTrue(re.contains("registerMethodWithDebug(\"Collector.collectObject\")"));
         assertTrue(re.contains("registerMethodWithDebug(\"Collector.collectObjectJson\")"));
+        assertTrue(re.contains("registerMethodWithDebug(\"Collector.collectMarker\")"));
+        assertTrue(re.contains("registerMethodWithDebug(\"Collector.collectOutcome\")"));
+        assertTrue(re.contains("public static void startEvent(final boolean isEntryEvent)"));
         // method bodies include appropriate send* calls
         assertTrue(re.contains("sendByte("));
         assertTrue(re.contains("sendChar("));
@@ -54,6 +57,7 @@ class CollectorTemplateCompletenessTest {
     @Test
     void collector_contains_all_corresponding_methods() throws Exception {
         String c = readResource("/templates/java/disl-analysis/Collector.jt");
+        assertTrue(c.contains("public void startEvent(final boolean isEntryEvent)"));
         assertTrue(c.contains("public void collectByte("));
         assertTrue(c.contains("public void collectChar("));
         assertTrue(c.contains("public void collectShort("));
@@ -64,6 +68,8 @@ class CollectorTemplateCompletenessTest {
         assertTrue(c.contains("public void collectBoolean("));
         assertTrue(c.contains("public void collectString("));
         assertTrue(c.contains("public void collectObject("));
+        assertTrue(c.contains("public void collectMarker("));
+        assertTrue(c.contains("public void collectOutcome("));
     }
 }
 
