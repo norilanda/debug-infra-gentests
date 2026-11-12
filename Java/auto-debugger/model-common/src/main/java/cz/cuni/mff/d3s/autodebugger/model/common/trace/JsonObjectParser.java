@@ -6,7 +6,8 @@ package cz.cuni.mff.d3s.autodebugger.model.common.trace;
  * 
  * Special markers:
  * - $class: fully qualified class name
- * - $cycle: indicates a circular reference
+ * - $id: number of the object within one recorded value (0, 1, 2, ... in write order)
+ * - $cycle: a reference back to an enclosing object, followed by its $id (e.g. $cycle:0)
  * - $ref: prefix for depth-limited references
  */
 public class JsonObjectParser {

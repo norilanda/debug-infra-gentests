@@ -37,9 +37,22 @@ public class CollectorRE {
     "com.sun."
   );
 
-  // Thread-local visited set for cycle detection
-  private static final ThreadLocal<IdentityHashMap<Object, Boolean>> VISITED =
-    ThreadLocal.withInitial(IdentityHashMap::new);
+  /**
+   * Numbers the objects of one value as they are written, so a cycle can refer back to an earlier object by its number.
+   */
+  private static final class SerializationState {
+    // The objects on the path from the value's root to the current object, with their ids
+    final IdentityHashMap<Object, Integer> idsOnPath = new IdentityHashMap<>();
+    int nextId = 0;
+
+    void reset() {
+      idsOnPath.clear();
+      nextId = 0;
+    }
+  }
+
+  private static final ThreadLocal<SerializationState> SERIALIZATION_STATE =
+    ThreadLocal.withInitial(SerializationState::new);
 
   private static short startEventId = registerMethodWithDebug("Collector.startEvent");
   private static short collectByteId = registerMethodWithDebug("Collector.collectByte");
@@ -195,8 +208,7 @@ public class CollectorRE {
       collectMarker(slotId, ValueMarker.SKIPPED);
       return;
     } finally {
-      // Clear visited set for this thread
-      VISITED.get().clear();
+      SERIALIZATION_STATE.get().reset();
     }
 
     if (json.length() > MAX_JSON_LENGTH) {
@@ -210,29 +222,31 @@ public class CollectorRE {
     REDispatch.analysisEnd();
   }
 
-  // Thread-local visited set for cycle detection
   private static String serializeToJson(Object obj, int maxDepth) {
     if (obj == null) {
       return "null";
     }
+
+    SerializationState state = SERIALIZATION_STATE.get();
+    Integer enclosingId = state.idsOnPath.get(obj);
+    if (enclosingId != null) {
+      return "\"$cycle:" + enclosingId + "\"";
+    }
+
     if (maxDepth <= 0) {
       return "\"$ref:" + obj.getClass().getName() + "\"";
     }
 
-    IdentityHashMap<Object, Boolean> visited = VISITED.get();
-    if (visited.containsKey(obj)) {
-      return "\"$cycle\"";  // Cycle detected
-    }
-
+    int id = state.nextId++;
     try {
-      visited.put(obj, Boolean.TRUE);
-      return buildJsonObject(obj, maxDepth);
+      state.idsOnPath.put(obj, id);
+      return buildJsonObject(obj, id, maxDepth);
     } finally {
-      visited.remove(obj);
+      state.idsOnPath.remove(obj);
     }
   }
 
-  private static String buildJsonObject(Object obj, int maxDepth) {
+  private static String buildJsonObject(Object obj, int id, int maxDepth) {
     Class<?> clazz = obj.getClass();
     String className = clazz.getName();
 
@@ -240,11 +254,13 @@ public class CollectorRE {
     // This avoids InaccessibleObjectException from Java module system
     if (className.startsWith("java.") || className.startsWith("javax.") ||
         className.startsWith("sun.") || className.startsWith("jdk.")) {
-      return "{\"$class\":\"" + className + "\",\"$value\":\"" + escapeJson(obj.toString()) + "\"}";
+      return "{\"$class\":\"" + className + "\",\"$id\":" + id
+        + ",\"$value\":\"" + escapeJson(obj.toString()) + "\"}";
     }
 
     StringBuilder sb = new StringBuilder();
-    sb.append("{\"$class\":\"").append(className).append("\"");
+    // $class must come first: JsonObjectParser requires it
+    sb.append("{\"$class\":\"").append(className).append("\",\"$id\":").append(id);
 
     int fieldCount = 0;
     for (Field f : getAllInstanceFields(clazz)) {
