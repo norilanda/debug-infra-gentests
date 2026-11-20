@@ -490,7 +490,6 @@ public class Collector extends RemoteAnalysis {
   /**
    * Writes all recorded hook events to the calls file, in both trace modes.
    * Writes to a temporary file first and then moves it into place, so a reader never sees half a file.
-   * A failure is logged and doesn't stop the trace file from being written.
    */
   private void writeCallsFile() {
     Path callsFile = Path.of(callsFilePath);
