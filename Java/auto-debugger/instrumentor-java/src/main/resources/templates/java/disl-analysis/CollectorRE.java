@@ -52,6 +52,7 @@ public class CollectorRE {
     }
   }
 
+  // Thread-local visited set for cycle detection
   private static final ThreadLocal<SerializationState> SERIALIZATION_STATE =
     ThreadLocal.withInitial(SerializationState::new);
 
@@ -188,7 +189,7 @@ public class CollectorRE {
   public static void collectObject(final int slotId, final Object obj) {
     if (obj == null) {
       collectMarker(slotId, ValueMarker.NULL);
-      return;
+      return;  // Skip null objects
     }
 
     // Check if this is a problematic type
@@ -196,7 +197,7 @@ public class CollectorRE {
     for (String prefix : SKIP_TYPE_PREFIXES) {
       if (className.startsWith(prefix)) {
         collectMarker(slotId, ValueMarker.SKIPPED);
-        return;
+        return;  // Skip problematic types
       }
     }
 
@@ -205,13 +206,15 @@ public class CollectorRE {
       // Serialize to JSON with depth limit
       json = serializeToJson(obj, MAX_OBJECT_DEPTH);
     } catch (Exception e) {
-      // Don't let a serialization error break the instrumented code
+      // Silently ignore serialization errors to avoid breaking instrumented code
       collectMarker(slotId, ValueMarker.SKIPPED);
       return;
     } finally {
+      // Clear the cycle-detection state for this thread
       SERIALIZATION_STATE.get().reset();
     }
 
+    // Enforce max JSON length: a cut JSON can't be parsed, so the whole value is replaced by a marker
     if (json.length() > MAX_JSON_LENGTH) {
       collectMarker(slotId, ValueMarker.TRUNCATED);
       return;
@@ -231,7 +234,7 @@ public class CollectorRE {
     SerializationState state = SERIALIZATION_STATE.get();
     Integer enclosingId = state.idsOnPath.get(obj);
     if (enclosingId != null) {
-      return "\"$cycle:" + enclosingId + "\"";
+      return "\"$cycle:" + enclosingId + "\"";  // Cycle detected
     }
 
     if (maxDepth <= 0) {

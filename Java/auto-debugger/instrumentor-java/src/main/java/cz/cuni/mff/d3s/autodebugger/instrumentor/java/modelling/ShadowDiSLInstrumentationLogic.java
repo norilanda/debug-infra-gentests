@@ -26,7 +26,7 @@ public class ShadowDiSLInstrumentationLogic extends DiSLInstrumentationLogic {
     }
     append(
         "System.out.println(\"[Instrumentation process] PID: \" + ProcessHandle.current().pid());\n");
-    // Start a new hook event: true in the entry hook (@Before), false in the exit hooks
+    // Start a new event for temporal tracing (in naive mode it only records the event in the event list)
     boolean isEntryHook = annotation.getActivationTime() == ActivationTime.BEFORE;
     append("CollectorRE.startEvent(" + isEntryHook + ");\n");
     for (JavaValue variable : exports) {

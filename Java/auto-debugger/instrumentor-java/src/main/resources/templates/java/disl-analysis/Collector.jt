@@ -108,6 +108,7 @@ public class Collector extends RemoteAnalysis {
     currentEvent.setOutcome(outcome);
   }
 
+  // Extract the actual String value from ShadowString
   private static String shadowStringValue(final ShadowObject value) {
     return (value instanceof ShadowString shadowString) ? shadowString.toString() : null;
   }

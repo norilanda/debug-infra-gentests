@@ -12,7 +12,8 @@ Templates
   - TARGET_PACKAGE, TARGET_CLASS, TARGET_METHOD, TARGET_RETURN: target metadata used to construct TestGenerationContext inside Collector via TestGenerationContextFactory.createFromStrings(...)
   - TRACE_MODE: either "naive" or "temporal"; controls Trace vs TemporalTrace and generator selection
 
-- Each hook starts a new event via CollectorRE.startEvent(isEntryEvent): true in the @Before hook, false in the @After / @AfterReturning hook. The Collector records the events in arrival order, each marked as entry or exit.
+- The Collector starts a new event for temporal mode via CollectorRE.startEvent(isEntryEvent), enabling TemporalTrace population alongside Trace.
+- isEntryEvent is true in the @Before hook, false in the @After / @AfterReturning hook. In both modes the Collector also records the events in arrival order, each marked as entry or exit.
 - After its values, the exit hook sends how the call ended via CollectorRE.collectOutcome(di.getException()) (@After), or collectOutcome(null) (@AfterReturning, which runs only on normal return). The Collector attaches it to the exit event as returned, or threw with the exception class and message.
 
 Compilation and manifest
