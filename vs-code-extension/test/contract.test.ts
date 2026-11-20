@@ -103,6 +103,22 @@ describe('schemas reject', () => {
         expect(errorsOf('trace', trace)).not.toBe('');
     });
 
+    it('a numeric thread id', () => {
+        const trace = {
+            schemaVersion: 1,
+            calls: [{ callIndex: 0, thread: { id: 1 }, entry: {} }],
+        };
+        expect(errorsOf('trace', trace)).not.toBe('');
+    });
+
+    it('a thread without an id', () => {
+        const trace = {
+            schemaVersion: 1,
+            calls: [{ callIndex: 0, thread: { name: 'main' }, entry: {} }],
+        };
+        expect(errorsOf('trace', trace)).not.toBe('');
+    });
+
     it('a test listing the same call twice', () => {
         const tests = { schemaVersion: 1, tests: [{ testId: 'T#a', callIndices: [1, 1] }] };
         expect(errorsOf('tests', tests)).not.toBe('');

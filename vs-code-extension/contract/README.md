@@ -24,7 +24,7 @@ All files are UTF-8 JSON.
   directory when it contains `run.json`.
 - **Call**: one call of the target procedure, with an **entry** snapshot and, if the backend records them, an **exit**
   snapshot and an **outcome** (returned, or threw an exception). `callIndex` numbers the calls 0, 1, 2, … in the order
-  they started.
+  they started. A call may also name the **thread** that started it (`thread`: an `id` as text and an optional `name`); the ending thread isn't recorded.
 - **Snapshot**: the values of the captured arguments and fields, keyed by `captureId` from `run.json`.
 - **Test**: a generated test, identified by a `testId`, reproducing zero or more calls (`callIndices`). A test
   with no calls is **synthetic**: an input combination that never occurred.
@@ -82,6 +82,7 @@ A backend must also meet these rules, which the schemas don't check:
 8. `run.json` `status` covers only the full run's own work: recording the calls and generating the tests. It is written
    even when that fails; `trace.json` / `tests.json` may then be missing or incomplete. Failures while executing tests (e.g. the tests don't compile) are reported in `results.json` only, and
    `run-tests` never changes `run.json`.
+9. Either every call in `trace.json` has `thread` or none does.
 
 `traceMode` is shown in the run summary only; consumers must not change behaviour based on it or on `language`, except
 that the extension uses `language` to pick the backend command.

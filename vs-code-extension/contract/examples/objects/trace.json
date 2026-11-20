@@ -3,6 +3,7 @@
     "calls": [
         {
             "callIndex": 0,
+            "thread": { "id": "1", "name": "main" },
             "entry": {
                 "0": {
                     "kind": "object",
@@ -99,6 +100,7 @@
         },
         {
             "callIndex": 1,
+            "thread": { "id": "1", "name": "main" },
             "entry": {
                 "0": { "kind": "null", "type": "com.example.Node" },
                 "1": { "kind": "text", "type": "java.util.List", "text": "[]" },

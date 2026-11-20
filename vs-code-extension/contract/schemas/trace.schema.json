@@ -19,6 +19,22 @@
             "required": ["callIndex", "entry"],
             "properties": {
                 "callIndex": { "type": "integer", "minimum": 0 },
+                "thread": {
+                    "description": "The thread that started the call; the ending thread isn't recorded. Either every call has it or none does; none means the backend doesn't record threads.",
+                    "type": "object",
+                    "required": ["id"],
+                    "properties": {
+                        "id": {
+                            "description": "The thread's id as the language gives it, written as text, e.g. `\"1\"`.",
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "name": {
+                            "description": "The thread's name, e.g. `main`; `null` or omitted when the thread has none.",
+                            "type": ["string", "null"]
+                        }
+                    }
+                },
                 "entry": {
                     "$ref": "urn:auto-debugger:contract:v1:value#/$defs/snapshot",
                     "description": "State when the call started."
