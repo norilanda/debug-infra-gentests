@@ -37,6 +37,9 @@ public class InstrumentationResult {
     /** Path where the serialized Trace object will be written by the collector. */
     private final Path traceFilePath;
 
+    /** Path where the collector will write the serialized RecordedEvents: every hook event in arrival order. */
+    private final Path callsFilePath;
+
     public List<Path> getAdditionalArtifacts() {
         return additionalArtifacts == null ? List.of() : Collections.unmodifiableList(additionalArtifacts);
     }

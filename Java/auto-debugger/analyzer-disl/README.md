@@ -22,7 +22,7 @@ The runner now accepts a trace mode selector:
 
 When set to temporal, the instrumentor will:
 - bake ${TRACE_MODE}=temporal into Collector
-- inject event boundaries via CollectorRE.startEvent() at the beginning of instrumented method probes
+- inject event boundaries via CollectorRE.startEvent(isEntryEvent) at the beginning of instrumented method probes (true for the entry probe, false for the exit probe)
 - enable a TemporalTrace alongside the classic Trace; at exit, the Collector will use TemporalTraceBasedGenerator with a proper TestGenerationContext constructed from ${TARGET_*} placeholders to generate tests
 
 When set to naive (default), the Collector will use the classic Trace and NaiveTraceBasedGenerator.

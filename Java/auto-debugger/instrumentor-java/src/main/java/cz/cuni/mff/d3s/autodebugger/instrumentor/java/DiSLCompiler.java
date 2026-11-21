@@ -217,7 +217,11 @@ public class DiSLCompiler {
             "cz/cuni/mff/d3s/autodebugger/model/common/trace/Trace.class",
             "cz/cuni/mff/d3s/autodebugger/model/common/trace/IndexedTrace.class",
             "cz/cuni/mff/d3s/autodebugger/model/common/trace/ObjectSnapshot.class",
-            "cz/cuni/mff/d3s/autodebugger/model/common/trace/JsonObjectParser.class"
+            "cz/cuni/mff/d3s/autodebugger/model/common/trace/JsonObjectParser.class",
+            "cz/cuni/mff/d3s/autodebugger/model/common/trace/RecordedEvents.class",
+            "cz/cuni/mff/d3s/autodebugger/model/common/trace/RecordedEvent.class",
+            "cz/cuni/mff/d3s/autodebugger/model/common/trace/RecordedOutcome.class",
+            "cz/cuni/mff/d3s/autodebugger/model/common/trace/ValueMarker.class"
         };
 
         // Find model-common JAR from the classpath we already resolve
