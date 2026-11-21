@@ -39,15 +39,20 @@ public class CollectorRE {
   );
 
   /**
-   * Numbers the objects of one value as they are written, so a cycle can refer back to an earlier object by its number.
+   * Numbers the objects of one event (all values of one entry or exit hook) as they are written, so a cycle can refer
+   * back to an earlier object by its number and no two objects of the event share a number.
    */
   private static final class SerializationState {
     // The objects on the path from the value's root to the current object, with their ids
     final IdentityHashMap<Object, Integer> idsOnPath = new IdentityHashMap<>();
     int nextId = 0;
 
-    void reset() {
+    void clearPath() {
       idsOnPath.clear();
+    }
+
+    /** Called at the start of each event. */
+    void restartIds() {
       nextId = 0;
     }
   }
@@ -79,6 +84,7 @@ public class CollectorRE {
   }
 
   public static void startEvent(final boolean isEntryEvent) {
+    SERIALIZATION_STATE.get().restartIds();
     REDispatch.analysisStart(startEventId);
     REDispatch.sendBoolean(isEntryEvent);
     REDispatch.analysisEnd();
@@ -211,7 +217,7 @@ public class CollectorRE {
       return;
     } finally {
       // Clear the cycle-detection state for this thread
-      SERIALIZATION_STATE.get().reset();
+      SERIALIZATION_STATE.get().clearPath();
     }
 
     // Enforce max JSON length: a cut JSON can't be parsed, so the whole value is replaced by a marker
